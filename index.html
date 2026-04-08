@@ -706,7 +706,33 @@ function renderAdminConfig(){
   </div>
   <button class="save-cfg-btn" onclick="saveConfig()">💾 SALVAR CONFIGURAÇÕES</button>`;
 }
-
+// ═══ ACTIONS ═══
+function openPlaylist(plId){const pl=S.playlists.find(p=>p.id===plId);if(!pl)return;S._plSearch='';goTo('playlist',{currentPlaylist:pl});}
+function openRecent(){const t=Date.now()-30*24*60*60*1000;const r=S.allSongs.filter(s=>s.visible!==false&&s.addedAt?.toMillis()>t);S.currentPlaylist={id:'__recent__',name:'Recém Adicionadas',emoji:'⚡'};S.songs['__recent__']=r;S._plSearch='';S.screen='playlist';render();}
+function selectSong(plId,sId){const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(!s)return;S.currentSong=s;S.requesterName='';S.message='';S.pixAmount=0;S.hasPix=false;S.showPixKey=false;S.pixCustom='';goTo('step1');}
+function selectAmt(a){S.pixAmount=a;S.showPixKey=false;render();}
+function showPix(){S.showPixKey=true;render();}
+function copyPix(){
+  navigator.clipboard.writeText(S.config.pixKey).then(()=>toast('Chave Pix copiada! 📋')).catch(()=>{const el=document.createElement('textarea');el.value=S.config.pixKey;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);toast('Chave Pix copiada! 📋');});
+}
+async function confirmPix(hasPix){
+  S.hasPix=hasPix;
+  const amt=hasPix?(S.pixAmount===-1?parseInt(S.pixCustom)||0:S.pixAmount):0;
+  try{await db.collection('requests').add({songTitle:S.currentSong.title,songArtist:S.currentSong.artist,playlistId:S.currentSong.playlistId,requesterName:S.requesterName.trim()||'Anônimo',message:S.message.trim(),hasPix,pixAmount:amt,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});goTo('confirm');}
+  catch(e){toast('Erro ao enviar. Tente novamente.');}
+}
+async function submitSuggest(){
+  const title=document.getElementById('sg-title')?.value.trim();
+  const artist=document.getElementById('sg-artist')?.value.trim();
+  const name=document.getElementById('sg-name')?.value.trim();
+  if(!title||!artist){toast('Preenche o nome da música e o artista!');return;}
+  try{
+    const ex=S.wishlist.find(w=>w.title.toLowerCase()===title.toLowerCase()&&w.artist.toLowerCase()===artist.toLowerCase());
+    if(ex)await db.collection('wishlist').doc(ex.id).update({count:firebase.firestore.FieldValue.increment(1),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    else await db.collection('wishlist').add({title,artist,count:1,requestedBy:name||'Anônimo',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    toast('Sugestão enviada! 🎸');setTimeout(()=>goHome(),1200);
+  }catch(e){toast('Erro ao enviar. Tente novamente.');}
+}
 // ═══ ADMIN ACTIONS ═══
 async function doLogin(){
   const e=document.getElementById('login-email')?.value;const p=document.getElementById('login-pass')?.value;const err=document.getElementById('login-err');
