@@ -759,8 +759,9 @@ function genQR(){
   c.innerHTML='<img src="https://chart.googleapis.com/chart?chs=180x180&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8" style="width:180px;height:180px;border-radius:8px" alt="QR Code"><br><a href="https://chart.googleapis.com/chart?chs=400x400&cht=qr&chl='+encodeURIComponent(url)+'&choe=UTF-8" download="qr-sujeitorock.png" style="color:var(--red2);font-size:12px;text-decoration:none;display:inline-block;margin-top:8px">⬇️ Baixar QR Code</a>';
 }
 function attachEvents(){
-  const lp=document.getElementById('login-pass');if(lp)lp.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-  document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-list')&&!e.target.closest('input'))document.querySelectorAll('.autocomplete-list').forEach(el=>el.remove());},{once:true});
+  const lp=document.getElementById('login-pass');
+  if(lp) lp.addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+}
 }
 // ═══ BOOT ═══
 auth.onAuthStateChanged(user=>{if(user&&S.screen==='admin-login'){S.isAdmin=true;S.adminTab='requests';S._prevReqCount=-1;listenReqs();listenWish();requestNotifPerm();renderAdmin();}});
