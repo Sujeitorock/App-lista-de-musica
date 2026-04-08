@@ -762,7 +762,6 @@ function attachEvents(){
   const lp=document.getElementById('login-pass');
   if(lp) lp.addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
 }
-}
 // ═══ BOOT ═══
 auth.onAuthStateChanged(user=>{if(user&&S.screen==='admin-login'){S.isAdmin=true;S.adminTab='requests';S._prevReqCount=-1;listenReqs();listenWish();requestNotifPerm();renderAdmin();}});
 async function init(){await loadConfig();render();loadPlaylists();if(window.location.hash==='#admin')goTo('admin-login');}
