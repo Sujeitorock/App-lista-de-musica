@@ -1375,17 +1375,17 @@ async function bulkToggleVisible(){
     })
     .catch(()=>toast('Erro ao salvar.'));
 }
-async function bulkDelete(){
-  async function bulkToggleVisible(){
+  async function bulkDelete(){
   if(!S.adminBulkSel.length)return;
-  const val=S.adminBulkSel[0].visible===false;
-  toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
+  if(!confirm('Apagar '+S.adminBulkSel.length+' músicas? Não tem como desfazer.'))return;
+  toast('Apagando...');
   for(const s of S.adminBulkSel){
-    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).update({visible:val});
-    const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);if(ls)ls.visible=val;
-    const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
+    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).delete();
+    S.songs[s.playlistId]=(S.songs[s.playlistId]||[]).filter(x=>x.id!==s.id);
+    S.allSongs=S.allSongs.filter(x=>!(x.id===s.id&&x.playlistId===s.playlistId));}catch(e){}
   }
-  S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
+  S.adminBulkSel=[];S.adminBulkMoving=false;toast('Apagadas! 🗑');renderAdmin();
+}
 async function bulkMoveToPlaylist(toPlId){
   if(!S.adminBulkSel.length)return;
   const toPl=S.playlists.find(p=>p.id===toPlId);
@@ -1404,7 +1404,17 @@ async function bulkMoveToPlaylist(toPlId){
   }
   S.adminBulkSel=[];S.adminBulkMoving=false;toast(ok+' músicas movidas para '+toPl?.name+'! ✅');renderAdmin();
 }
-
+async function bulkToggleVisible(){
+  if(!S.adminBulkSel.length)return;
+  const val=S.adminBulkSel[0]?.visible===false;
+  toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
+  for(const s of S.adminBulkSel){
+    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).update({visible:val});
+    const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);if(ls)ls.visible=val;
+    const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
+  }
+  S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
+}
 // ─── CUSTOM REACTION ───
 function sendCustomReaction(id,val){
   const msg=typeof val==='string'?val.trim():(val?.value||'').trim();
@@ -1412,8 +1422,18 @@ function sendCustomReaction(id,val){
   sendReaction(id,msg);
   try{const el=document.getElementById('crx-'+id);if(el)el.value='';}catch(e){}
 }
-
 // ═══ BOOT ═══
+  async function bulkToggleVisible(){
+  if(!S.adminBulkSel.length)return;
+  const val=S.adminBulkSel[0].visible===false;
+  toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
+  for(const s of S.adminBulkSel){
+    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).update({visible:val});
+    const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);if(ls)ls.visible=val;
+    const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
+  }
+  S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
+}
 auth.onAuthStateChanged(user=>{
   if(user){
     // Só ativa admin se: estava logado antes (localStorage), ou veio via #admin, ou está na tela de login admin
