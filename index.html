@@ -1001,8 +1001,6 @@ function renderAdminSongs(){
   :'<div class="empty-state"><p>Selecione uma playlist acima</p></div>'}
   ${bulkBar}`;
 }
-
-}
 function cycleArtist(){const artists=getArtists();if(!artists.length){toast('Nenhum artista cadastrado ainda.');return;}const inp=document.getElementById('new-s-artist');if(!inp)return;const cur=inp.value;const idx=artists.indexOf(cur);inp.value=artists[(idx+1)%artists.length];}
 
 async function importBulk(){
