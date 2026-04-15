@@ -1423,17 +1423,7 @@ function sendCustomReaction(id,val){
   try{const el=document.getElementById('crx-'+id);if(el)el.value='';}catch(e){}
 }
 // ═══ BOOT ═══
-  async function bulkToggleVisible(){
-  if(!S.adminBulkSel.length)return;
-  const val=S.adminBulkSel[0].visible===false;
-  toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
-  for(const s of S.adminBulkSel){
-    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).update({visible:val});
-    const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);if(ls)ls.visible=val;
-    const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
-  }
-  S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
-}
+  
 auth.onAuthStateChanged(user=>{
   if(user){
     // Só ativa admin se: estava logado antes (localStorage), ou veio via #admin, ou está na tela de login admin
