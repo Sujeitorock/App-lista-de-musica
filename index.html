@@ -971,7 +971,8 @@ function renderAdminSongs(){
     <div class="admin-bulk-cnt"><em>${S.adminBulkSel.length}</em> música${S.adminBulkSel.length!==1?'s':''} selecionada${S.adminBulkSel.length!==1?'s':''}</div>
     <div class="admin-bulk-actions">
       <button class="admin-bulk-btn" onclick="bulkToggleVisible()">👁 Ocultar/Mostrar</button>
-      <button class="admin-bulk-btn" onclick="bulkEdit()">✏️ Editar</button>
+<button class="admin-bulk-btn" onclick="bulkEdit()">✏️ Editar</button>
+<button class="admin-bulk-btn danger" onclick="bulkDelete()">🗑 Apagar</button>
     </div>
     ${S.adminBulkMoving?`<div class="admin-bulk-move-pls">
       <span style="font-size:12px;color:var(--gray2);width:100%">Mover para:</span>
@@ -1354,7 +1355,8 @@ async function bulkToggleVisible(){
     const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
   }
   S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
-}function bulkEdit(){
+  } 
+  function bulkEdit(){
   if(S.adminBulkSel.length!==1){toast('Selecione só 1 música pra editar!');return;}
   const s=S.adminBulkSel[0];
   const newTitle=prompt('Nome da música:',s.title);
