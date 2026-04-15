@@ -970,10 +970,8 @@ function renderAdminSongs(){
   const bulkBar=hasBulk?`<div class="admin-bulk-bar">
     <div class="admin-bulk-cnt"><em>${S.adminBulkSel.length}</em> música${S.adminBulkSel.length!==1?'s':''} selecionada${S.adminBulkSel.length!==1?'s':''}</div>
     <div class="admin-bulk-actions">
-      <button class="admin-bulk-btn" onclick="bulkToggleVisible(false)">👁 Ocultar</button>
-      <button class="admin-bulk-btn" onclick="bulkToggleVisible(true)">✅ Mostrar</button>
-      <button class="admin-bulk-btn danger" onclick="bulkDelete()">🗑 Apagar</button>
-      <button class="admin-bulk-btn" style="background:transparent;border-color:var(--gray);color:var(--gray)" onclick="S.adminBulkSel=[];renderAdmin()">✕ Limpar</button>
+      <button class="admin-bulk-btn" onclick="bulkToggleVisible()">👁 Ocultar/Mostrar</button>
+      <button class="admin-bulk-btn" onclick="bulkEdit()">✏️ Editar</button>
     </div>
     ${S.adminBulkMoving?`<div class="admin-bulk-move-pls">
       <span style="font-size:12px;color:var(--gray2);width:100%">Mover para:</span>
@@ -1346,7 +1344,8 @@ function toggleBulkSel(sId,plId){
   else{const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(s)S.adminBulkSel.push({...s,playlistId:plId});}
   renderAdmin();
 }
-async function bulkToggleVisible(val){
+async function bulkToggleVisible(){
+  const val=S.adminBulkSel[0]?.visible===false;
   if(!S.adminBulkSel.length)return;
   toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
   for(const s of S.adminBulkSel){
@@ -1355,18 +1354,36 @@ async function bulkToggleVisible(val){
     const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
   }
   S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
+}function bulkEdit(){
+  if(S.adminBulkSel.length!==1){toast('Selecione só 1 música pra editar!');return;}
+  const s=S.adminBulkSel[0];
+  const newTitle=prompt('Nome da música:',s.title);
+  if(newTitle===null)return;
+  const newArtist=prompt('Artista:',s.artist);
+  if(newArtist===null)return;
+  if(!newTitle.trim()||!newArtist.trim()){toast('Preenche os dois campos!');return;}
+  db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id)
+    .update({title:newTitle.trim(),artist:newArtist.trim()})
+    .then(()=>{
+      const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);
+      if(ls){ls.title=newTitle.trim();ls.artist=newArtist.trim();}
+      const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);
+      if(la){la.title=newTitle.trim();la.artist=newArtist.trim();}
+      S.adminBulkSel=[];toast('Música atualizada! ✅');renderAdmin();
+    })
+    .catch(()=>toast('Erro ao salvar.'));
 }
 async function bulkDelete(){
+  async function bulkToggleVisible(){
   if(!S.adminBulkSel.length)return;
-  if(!confirm('Apagar '+S.adminBulkSel.length+' músicas? Não tem como desfazer.'))return;
-  toast('Apagando...');
+  const val=S.adminBulkSel[0].visible===false;
+  toast((val?'Mostrando ':'Ocultando ')+S.adminBulkSel.length+' músicas...');
   for(const s of S.adminBulkSel){
-    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).delete();
-    S.songs[s.playlistId]=(S.songs[s.playlistId]||[]).filter(x=>x.id!==s.id);
-    S.allSongs=S.allSongs.filter(x=>!(x.id===s.id&&x.playlistId===s.playlistId));}catch(e){}
+    try{await db.collection('playlists').doc(s.playlistId).collection('songs').doc(s.id).update({visible:val});
+    const ls=(S.songs[s.playlistId]||[]).find(x=>x.id===s.id);if(ls)ls.visible=val;
+    const la=S.allSongs.find(x=>x.id===s.id&&x.playlistId===s.playlistId);if(la)la.visible=val;}catch(e){}
   }
-  S.adminBulkSel=[];S.adminBulkMoving=false;toast('Apagadas! 🗑');renderAdmin();
-}
+  S.adminBulkSel=[];toast('Pronto! ✅');renderAdmin();
 async function bulkMoveToPlaylist(toPlId){
   if(!S.adminBulkSel.length)return;
   const toPl=S.playlists.find(p=>p.id===toPlId);
