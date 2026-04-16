@@ -1327,7 +1327,7 @@ function renderShows(){
         </div>
         <div class="show-meta">
           ${time?`<span class="show-meta-pill">🕐 ${time}h</span>`:''}
-          <span class="show-meta-pill">📍 ${_esc(venue)}</span>
+         ${venue&&venue!=='A confirmar'?`<span class="show-meta-pill">📍 ${_esc(venue)}</span>`:''}
           ${weekday?`<span class="show-meta-pill">${weekday.charAt(0).toUpperCase()+weekday.slice(1)}</span>`:''}
         </div>
         ${desc.length>0?`<div style="font-size:12px;color:var(--gray2);margin-bottom:12px;line-height:1.5">${_esc(desc.length>120?desc.slice(0,120)+'…':desc)}</div>`:''}
