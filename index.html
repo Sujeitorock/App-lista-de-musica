@@ -1252,8 +1252,8 @@ function genQR(){
 function attachEvents(){
   const lp=document.getElementById('login-pass');
   if(lp) lp.addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+  if(S.screen==='step2'){setTimeout(()=>renderPixQR(),50);}
 }
-
 // ─── SHOWS ───
 function _esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';} 
 async function loadShows(){
