@@ -531,7 +531,7 @@ function renderPixQR(){
   if(!container)return;
   container.innerHTML='';
   if(!S.config.pixKey){return;}
-  const payload=buildPixPayload(S.config.pixKey,0,S.config.pixOwnerName||ARTISTA.pixOwnerName,S.config.pixCity||ARTISTA.pixCity);
+  const payload=buildPixPayload(S.config.pixKey,0,S.config.pixOwnerName||'SUJEITO ROCK',S.config.pixCity||'SAO PAULO');
   const url='https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=10&data='+encodeURIComponent(payload);
   const img=document.createElement('img');
   img.alt='QR Code Pix';img.style.cssText='width:180px;height:180px;border-radius:8px;display:block';
