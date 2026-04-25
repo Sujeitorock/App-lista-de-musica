@@ -747,40 +747,35 @@ function saveKnownName(name){
 function submitStep1(){if(!S.requesterName.trim()){toast('Por favor, coloque seu nome! 😊');const inp=document.getElementById('inp-name');if(inp){inp.focus();inp.style.borderColor='var(--red2)';}return;}saveKnownName(S.requesterName.trim());goTo('step2');}
 
 function renderStep2(){
-  const amounts=S.config.suggestedAmounts||[10,20,50];
   return`<div class="screen fade-in">
     <div class="screen-header"><button class="back-btn" onclick="goTo('step1')">←</button><div class="screen-header-info"><div class="screen-header-title">Apoiar o Artista</div></div></div>
     <div class="step-screen" style="padding-top:24px">
       <div class="step-pill">💰 Passo 2 de 2</div>
       <p style="font-size:18px;font-weight:700;margin:12px 0 6px">${S.selectedSongs.length>1?'Suas músicas estão pedidas!':'Sua música tá pedida!'} 🎸</p>
-      <p style="font-size:14px;color:var(--gray2);margin-bottom:24px;line-height:1.5">Oi <strong style="color:white">${S.requesterName}</strong>! Quer apoiar o Sujeito Rock com uma gorjeta via Pix?</p>
-      <div class="pix-amounts">
-        ${amounts.map(a=>`<button class="pix-amount-btn ${S.pixAmount===a?'selected':''}" onclick="selectAmt(${a})">R$${a}<span class="pix-label">via pix</span></button>`).join('')}
-        <button class="pix-amount-btn ${S.pixAmount===-1?'selected':''}" onclick="selectAmt(-1)" style="grid-column:span 2">Outro valor<span class="pix-label">você escolhe</span></button>
+      <p style="font-size:14px;color:var(--gray2);margin-bottom:20px;line-height:1.5">Oi <strong style="color:white">${S.requesterName}</strong>! Quer apoiar o Sujeito Rock com uma gorjeta via Pix?</p>
+
+      <div class="pix-key-box show" style="padding:16px;text-align:center">
+        <div id="pix-qr-container" style="display:inline-block;margin-bottom:12px"></div>
+        <div style="font-size:12px;color:var(--gray2);margin-bottom:6px">Chave Pix:</div>
+        <div style="font-size:13px;color:white;word-break:break-all;margin-bottom:10px;font-weight:600">${S.config.pixKey}</div>
+        <button class="copy-btn" style="width:100%;padding:10px" onclick="copyPix()">📋 Copiar chave Pix</button>
+        <button class="btn-primary" style="margin-top:10px" onclick="confirmPix(true)">✅ Enviei o Pix! 👍</button>
       </div>
-      ${S.pixAmount===-1?`<div class="outro-row"><input type="number" id="custom-amt" placeholder="R$ quanto quiser" value="${S.pixCustom}" oninput="S.pixCustom=this.value" inputmode="numeric"></div>`:''}
-      <div class="pix-key-box ${S.showPixKey?'show':''}">
-        <div class="pix-key-label">Chave Pix</div>
-        <div class="pix-key-value" id="pix-key-txt">${S.config.pixKey}</div>
-        <button class="copy-btn" onclick="copyPix()">📋 Copiar chave Pix</button>
-        <div class="pix-qr-wrap"><div id="pix-qr-container" style="display:inline-block"></div></div>
-        ${S.pixAmount!==0?`<div style="font-size:12px;color:var(--gray2);margin-top:4px">Valor: <strong style="color:white">R$${S.pixAmount===-1?(S.pixCustom||'?'):S.pixAmount}</strong></div>`:''}
-        <div class="wallet-btns" id="wallet-btns"></div>
-      </div>
-      ${S.pixAmount!==0&&!S.showPixKey?'<button class="btn-primary" onclick="showPix()">Ver chave Pix 🔑</button>':''}
-      ${S.showPixKey?'<button class="btn-primary" onclick="confirmPix(true)">✅ Enviei o Pix! 🤘</button>':''}
-      ${S.config.internationalPayments&&(S.config.paypalLink||S.config.kofiLink)?`<div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px;text-align:center">
-        <p style="font-size:12px;color:var(--gray2);margin-bottom:12px">🌍 Paying internationally? Support via:</p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          ${S.config.paypalLink?`<a href="${S.config.paypalLink}" target="_blank" style="background:#0070ba;color:#fff;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;text-decoration:none">PayPal 💳</a>`:''}
-          ${S.config.kofiLink?`<a href="${S.config.kofiLink}" target="_blank" style="background:#ff5e5b;color:#fff;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;text-decoration:none">Ko-fi ☕</a>`:''}
+
+      <button class="btn-secondary" onclick="confirmPix(false)" style="background:var(--red);color:white;border:none;padding:18px;font-size:16px;font-weight:700;margin-top:16px;width:100%;border-radius:12px">Hoje não, fica pra próxima 😊</button>
+
+      ${S.config.internationalPayments&&(S.config.paypalLink||S.config.kofiLink)?`
+      <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:14px;text-align:center">
+        <p style="font-size:11px;color:var(--gray2);margin-bottom:10px">🌍 Paying internationally? Support via:</p>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          ${S.config.paypalLink?`<a href="${S.config.paypalLink}" target="_blank" style="background:#0070ba;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;text-decoration:none">PayPal 💳</a>`:''}
+          ${S.config.kofiLink?`<a href="${S.config.kofiLink}" target="_blank" style="background:#ff5e5b;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;text-decoration:none">Ko-fi ☕</a>`:''}
         </div>
       </div>`:''}
-      <button class="btn-secondary" onclick="confirmPix(false)">Hoje não, fica pra próxima 😊</button>
+
     </div>
   </div>`;
 }
-
 function detectWallets(){
   const ua=navigator.userAgent.toLowerCase();
   const btns=[];
