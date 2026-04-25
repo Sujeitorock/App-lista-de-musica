@@ -530,23 +530,18 @@ function renderPixQR(){
   const container=document.getElementById('pix-qr-container');
   if(!container)return;
   container.innerHTML='';
-  container.style.background='transparent';container.style.padding='0';
-  const amt=S.pixAmount===-1?parseFloat(S.pixCustom)||0:S.pixAmount;
-  if(amt<=0)return;
   if(!S.config.pixKey){return;}
-  const payload=buildPixPayload(S.config.pixKey,amt,S.config.pixOwnerName||ARTISTA.pixOwnerName,S.config.pixCity||ARTISTA.pixCity);
+  const payload=buildPixPayload(S.config.pixKey,0,S.config.pixOwnerName||ARTISTA.pixOwnerName,S.config.pixCity||ARTISTA.pixCity);
   const url='https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=10&data='+encodeURIComponent(payload);
   const img=document.createElement('img');
   img.alt='QR Code Pix';img.style.cssText='width:180px;height:180px;border-radius:8px;display:block';
   img.onload=()=>{
     container.style.background='#fff';container.style.padding='12px';container.style.borderRadius='10px';container.style.display='inline-block';
     container.innerHTML='';container.appendChild(img);
-    const lbl=document.createElement('div');lbl.className='pix-qr-label';lbl.textContent='Escaneie e pague R$'+amt.toFixed(2);container.appendChild(lbl);
   };
-  img.onerror=()=>{container.innerHTML='';container.style.background='transparent';container.style.padding='0';};
+  img.onerror=()=>{container.innerHTML='';};
   img.src=url;
 }
-
 // ═══ TOAST ═══
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
