@@ -1161,7 +1161,7 @@ async function doLogout(){
   goHome();
 }
 function setTab(tab,plId){S.adminTab=tab;if(plId)S.adminSongsPl=plId;renderAdmin();}
-async function togglePl(plId,cur){try{await db.collection('playlists').doc(plId).update({visible:!cur});const pl=S.playlists.find(p=>p.id===plId);if(pl)pl.visible=!cur;renderAdmin();}catch(e){toast('Erro.');}}
+async function togglePl(plId,cur){try{const newVal=!cur;await db.collection('playlists').doc(plId).update({visible:newVal});const pl=S.playlists.find(p=>p.id===plId);if(pl)pl.visible=newVal;const songs=S.songs[plId]||[];for(const s of songs){await db.collection('playlists').doc(plId).collection('songs').doc(s.id).update({visible:newVal});s.visible=newVal;const a=S.allSongs.find(x=>x.id===s.id&&x.playlistId===plId);if(a)a.visible=newVal;}renderAdmin();}catch(e){toast('Erro.');}}
 async function toggleSong(plId,sId,cur){
   try{await db.collection('playlists').doc(plId).collection('songs').doc(sId).update({visible:!cur});
   const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(s)s.visible=!cur;
