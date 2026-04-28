@@ -906,18 +906,38 @@ function renderAdminReqs(){
 }
 
 function renderAdminPlaylists(){
-  return`<div class="add-form"><h4>Nova Playlist</h4>
-    <div class="field" style="display:flex;gap:8px"><input type="text" id="new-pl-emoji" placeholder="🎵" style="width:70px"><input type="text" id="new-pl-name" placeholder="Nome da playlist" style="flex:1"></div>
-    <button class="btn-add" onclick="addPlaylist()">+ Adicionar</button>
-  </div>
-  ${S.playlists.length===0?'<div class="empty-state"><div class="empty-icon">🎵</div><p>Nenhuma playlist criada.<br>Adicione uma acima!</p></div>':
-  S.playlists.map(pl=>`<div class="admin-pl-item">
-    <span style="font-size:24px">${pl.emoji||'🎵'}</span>
-    <div style="flex:1"><div class="admin-pl-name">${pl.name}</div><div class="admin-pl-count">${(S.songs[pl.id]||[]).length} músicas</div></div>
-    <button class="manage-btn" onclick="setTab('songs','${pl.id}')">Músicas</button>
-    <button class="delete-pl-btn" onclick="deletePlaylist('${pl.id}')" title="Apagar playlist">🗑</button>
-    <div class="toggle ${pl.visible!==false?'on':''}" onclick="togglePl('${pl.id}',${pl.visible!==false})"></div>
-  </div>`).join('')}`;
+  var wishSongs = S.wishlist.map(function(w){
+    return {
+      id: w.id,
+      title: w.title,
+      artist: w.artist,
+      playlistId: '__wish__',
+      playlistName: 'Sugestão do Público',
+      visible: true,
+      count: w.count,
+      isWish: true
+    };
+  });
+  S.songs['__wish__'] = wishSongs;
+  return '<div class="add-form"><h4>Nova Playlist</h4>' +
+    '<div class="field" style="display:flex;gap:8px"><input type="text" id="new-pl-emoji" placeholder="🎵" style="width:70px"><input type="text" id="new-pl-name" placeholder="Nome da playlist" style="flex:1"></div>' +
+    '<button class="btn-add" onclick="addPlaylist()">+ Adicionar</button>' +
+    '</div>' +
+    (S.playlists.length===0?'<div class="empty-state"><div class="empty-icon">🎵</div><p>Nenhuma playlist criada.<br>Adicione uma acima!</p></div>':
+    S.playlists.map(function(pl){
+      return '<div class="admin-pl-item">' +
+        '<span style="font-size:24px">' + (pl.emoji||'🎵') + '</span>' +
+        '<div style="flex:1"><div class="admin-pl-name">' + pl.name + '</div><div class="admin-pl-count">' + (S.songs[pl.id]||[]).length + ' músicas</div></div>' +
+        '<button class="manage-btn" onclick="setTab(\'songs\',\'' + pl.id + '\')">Músicas</button>' +
+        '<button class="delete-pl-btn" onclick="deletePlaylist(\'' + pl.id + '\')" title="Apagar playlist">🗑</button>' +
+        '<div class="toggle ' + (pl.visible!==false?'on':'') + '" onclick="togglePl(\'' + pl.id + '\',' + (pl.visible!==false) + ')"></div>' +
+        '</div>';
+    }).join('')) +
+    '<div class="admin-pl-item" style="border-color:rgba(192,57,43,0.5);background:rgba(192,57,43,0.08)">' +
+    '<span style="font-size:24px">💌</span>' +
+    '<div style="flex:1"><div class="admin-pl-name">Sugestão do Público</div><div class="admin-pl-count">' + wishSongs.length + ' sugestões</div></div>' +
+    '<button class="manage-btn" onclick="setTab(\'songs\',\'__wish__\')">Ver</button>' +
+    '</div>';
 }
 
 function renderAdminSongs(){
