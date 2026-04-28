@@ -917,7 +917,9 @@ function renderAdminReqs(){
       }).join('') +
     '</div>' +
     '<div class="req-actions"><button class="req-btn req-played" onclick="' + (r.isWish ? 'dismissWishItem' : 'markPlayed') + '(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="' + (r.isWish ? 'dismissWishItem' : 'dismissReq') + '(\'' + r.id + '\')">✕ Descartar</button></div>' +
-      return html;
+       '</div>';
+  });
+  return html;
 }
 function dismissWishItem(id){
   var realId = id.replace('wish_','');
