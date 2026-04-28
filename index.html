@@ -890,19 +890,6 @@ function renderAdminReqs(){
   var wishItems = S.wishlist.map(function(w){
     return {
       id: 'wish_' + w.id,
-      requesterName: w.requestedBy || 'Anônimo',
-      songTitle: w.title,
-      songArtist: w.artist,
-      message: '',
-      hasPix: false,
-      pixAmount: 0,
-      createdAt: w.createdAt,
-      count: w.count,
-      isWish: true
-  function renderAdminReqs(){
-  var wishItems = S.wishlist.map(function(w){
-    return {
-      id: 'wish_' + w.id,
       requesterName: w.requestedBy || 'Anonimo',
       songTitle: w.title,
       songArtist: w.artist,
