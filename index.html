@@ -899,24 +899,6 @@ function renderAdminReqs(){
       createdAt: w.createdAt,
       count: w.count,
       isWish: true
-    };
-  });
-  var allItems = wishItems.concat(S.requests);
-  if(allItems.length===0)return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
-  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">' + allItems.length + ' item' + (allItems.length!==1?'ns':'') + '</span></div>' +
-  allItems.map(function(r){
-    var t = r.createdAt ? new Date(r.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
-    var REACOES = ['🤘','Yeaaah!','Ótima música!','Deixa comigo!','Bom gosto!','🔥 Clássico!'];
-    return '<div class="request-card' + (r.hasPix?' has-pix':'') + (r.isWish?' wish-request':'') + '">' +
-    '<div class="req-header"><div class="req-name">' + (r.requesterName||'Anônimo') + '</div>' + (r.hasPix?'<span class="pix-badge">💰 PIX R$'+(r.pixAmount||'?')+'</span>':'') + '<span class="req-time">' + t + '</span></div>' +
-    '<div class="req-song">🎵 <strong>' + r.songTitle + '</strong> — ' + r.songArtist + '</div>' +
-    (r.message && !r.isWish ? '<div class="req-msg">"' + r.message + '"</div>' : '') +
-    '<div class="req-reactions">' +
-      REACOES.map(function(rx,i){
-        return '<button class="reaction-btn' + (r.adminReaction===rx?' sent':'') + '" data-reqid="' + r.id + '" data-ri="' + i + '" onclick="doReaction(this)">' + rx + '</button>';
-      }).join('') +
-    '</div>' +
-    '<div class="custom-rx-row">' +
    function renderAdminReqs(){
   var wishItems = S.wishlist.map(function(w){
     return {
@@ -933,6 +915,25 @@ function renderAdminReqs(){
     };
   });
   var allItems = wishItems.concat(S.requests);
+  if(allItems.length===0)return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
+  var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">' + allItems.length + ' item' + (allItems.length!==1?'ns':'') + '</span></div>';
+  allItems.forEach(function(r){
+    var t = r.createdAt ? new Date(r.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    var REACOES = ['🤘','Yeaaah!','Otima musica!','Deixa comigo!','Bom gosto!','Classico!'];
+    html += '<div class="request-card' + (r.hasPix?' has-pix':'') + (r.isWish?' wish-request':'') + '">' +
+    '<div class="req-header"><div class="req-name">' + (r.requesterName||'Anonimo') + '</div>' + (r.hasPix?'<span class="pix-badge">💰 PIX R$'+(r.pixAmount||'?')+'</span>':'') + '<span class="req-time">' + t + '</span></div>' +
+    '<div class="req-song">🎵 <strong>' + r.songTitle + '</strong> — ' + r.songArtist + '</div>' +
+    (r.message && !r.isWish ? '<div class="req-msg">"' + r.message + '"</div>' : '') +
+    '<div class="req-reactions">' +
+      REACOES.map(function(rx,i){
+        return '<button class="reaction-btn' + (r.adminReaction===rx?' sent':'') + '" onclick="sendReaction(\'' + r.id + '\',\'' + rx + '\')">' + rx + '</button>';
+      }).join('') +
+    '</div>' +
+    '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayed(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq(\'' + r.id + '\')">✕ Descartar</button></div>' +
+    '</div>';
+  });
+  return html;
+}
   if(allItems.length===0)return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
   var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">' + allItems.length + ' item' + (allItems.length!==1?'ns':'') + '</span></div>';
   allItems.forEach(function(r){
