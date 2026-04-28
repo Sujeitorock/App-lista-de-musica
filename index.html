@@ -921,9 +921,8 @@ function renderAdminReqs(){
       '<button class="reaction-btn" onclick="sendCustomReaction(\'' + r.id + '\',document.getElementById(\'crx-' + r.id + '\').value)">Enviar 🎤</button>' +
     '</div>' +
     (r.isWish ? '' :
-   '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayed(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq(\'' + r.id + '\')">✕ Descartar</button></div>' +
+      '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayed(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq(\'' + r.id + '\')">✕ Descartar</button></div>' +
     '</div>';
-  }).join('');
 }
 
 function renderAdminPlaylists(){
