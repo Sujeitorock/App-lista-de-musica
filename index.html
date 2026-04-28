@@ -916,10 +916,13 @@ function renderAdminReqs(){
         return '<button class="reaction-btn' + (r.adminReaction===rx?' sent':'') + '" onclick="sendReaction(\'' + r.id + '\',\'' + rx + '\')">' + rx + '</button>';
       }).join('') +
     '</div>' +
-    '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayed(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq(\'' + r.id + '\')">✕ Descartar</button></div>' +
-    '</div>';
-  });
-  return html;
+    '<div class="req-actions"><button class="req-btn req-played" onclick="' + (r.isWish ? 'dismissWishItem' : 'markPlayed') + '(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="' + (r.isWish ? 'dismissWishItem' : 'dismissReq') + '(\'' + r.id + '\')">✕ Descartar</button></div>' +
+      return html;
+}
+function dismissWishItem(id){
+  var realId = id.replace('wish_','');
+  S.wishlist = S.wishlist.filter(function(x){ return x.id !== realId; });
+  renderAdmin();
 }
 
 function renderAdminPlaylists(){
