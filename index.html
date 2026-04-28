@@ -192,6 +192,7 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 
 /* REQUEST CARD */
 .request-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.request-card.wish-request{border-color:rgba(192,57,43,0.5);background:rgba(192,57,43,0.08)}
 .request-card.has-pix{border-color:rgba(192,57,43,0.4);background:linear-gradient(135deg,#1a0808,#1e1e1e)}
 .req-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .pix-badge{background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.5px}
@@ -886,23 +887,43 @@ function renderAdmin(){
 function renderAdminContent(){switch(S.adminTab){case 'requests':return renderAdminReqs();case 'playlists':return renderAdminPlaylists();case 'songs':return renderAdminSongs();case 'wishlist':return renderAdminWish();case 'config':return renderAdminConfig();default:return'';}}
 
 function renderAdminReqs(){
-  if(S.requests.length===0)return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>`;
-  return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">${S.requests.length} pedido${S.requests.length!==1?'s':''}</span></div>
-  ${S.requests.map(r=>{const t=r.createdAt?new Date(r.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-  const REACOES=['🤘','Yeaaah!','Ótima música!','Deixa comigo!','Bom gosto!','🔥 Clássico!'];
-  return`<div class="request-card ${r.hasPix?'has-pix':''}">
-    <div class="req-header"><div class="req-name">${r.requesterName||'Anônimo'}</div>${r.hasPix?'<span class="pix-badge">💰 PIX R$'+(r.pixAmount||'?')+'</span>':''}<span class="req-time">${t}</span></div>
-    <div class="req-song">🎵 <strong>${r.songTitle}</strong> — ${r.songArtist}</div>
-    ${r.message?'<div class="req-msg">"'+r.message+'"</div>':''}
-    <div class="req-reactions">
-      ${REACOES.map((rx,i)=>`<button class="reaction-btn${r.adminReaction===rx?' sent':''}" data-reqid="${r.id}" data-ri="${i}" onclick="doReaction(this)">${rx}</button>`).join('')}
-    </div>
-    <div class="custom-rx-row">
-      <input class="custom-rx-input" id="crx-${r.id}" placeholder="Digitar resposta..." onkeydown="if(event.key==='Enter')sendCustomReaction('${r.id}',this.value)">
-      <button class="reaction-btn" onclick="sendCustomReaction('${r.id}',document.getElementById('crx-${r.id}').value)">Enviar 🎤</button>
-    </div>
-    <div class="req-actions"><button class="req-btn req-played" onclick="markPlayed('${r.id}')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq('${r.id}')">✕ Descartar</button></div>
-  </div>`;}).join('')}`;
+  var wishItems = S.wishlist.map(function(w){
+    return {
+      id: 'wish_' + w.id,
+      requesterName: w.requestedBy || 'Anônimo',
+      songTitle: w.title,
+      songArtist: w.artist,
+      message: '',
+      hasPix: false,
+      pixAmount: 0,
+      createdAt: w.createdAt,
+      count: w.count,
+      isWish: true
+    };
+  });
+  var allItems = wishItems.concat(S.requests);
+  if(allItems.length===0)return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">' + allItems.length + ' item' + (allItems.length!==1?'ns':'') + '</span></div>' +
+  allItems.map(function(r){
+    var t = r.createdAt ? new Date(r.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    var REACOES = ['🤘','Yeaaah!','Ótima música!','Deixa comigo!','Bom gosto!','🔥 Clássico!'];
+    return '<div class="request-card' + (r.hasPix?' has-pix':'') + (r.isWish?' wish-request':'') + '">' +
+    '<div class="req-header"><div class="req-name">' + (r.requesterName||'Anônimo') + '</div>' + (r.hasPix?'<span class="pix-badge">💰 PIX R$'+(r.pixAmount||'?')+'</span>':'') + '<span class="req-time">' + t + '</span></div>' +
+    '<div class="req-song">🎵 <strong>' + r.songTitle + '</strong> — ' + r.songArtist + '</div>' +
+    (r.message && !r.isWish ? '<div class="req-msg">"' + r.message + '"</div>' : '') +
+    '<div class="req-reactions">' +
+      REACOES.map(function(rx,i){
+        return '<button class="reaction-btn' + (r.adminReaction===rx?' sent':'') + '" data-reqid="' + r.id + '" data-ri="' + i + '" onclick="doReaction(this)">' + rx + '</button>';
+      }).join('') +
+    '</div>' +
+    '<div class="custom-rx-row">' +
+      '<input class="custom-rx-input" id="crx-' + r.id + '" placeholder="Digitar resposta..." onkeydown="if(event.key===\'Enter\')sendCustomReaction(\'' + r.id + '\',this.value)">' +
+      '<button class="reaction-btn" onclick="sendCustomReaction(\'' + r.id + '\',document.getElementById(\'crx-' + r.id + '\').value)">Enviar 🎤</button>' +
+    '</div>' +
+    (r.isWish ? '' :
+    '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayed(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReq(\'' + r.id + '\')">✕ Descartar</button></div>') +
+    '</div>';
+  }).join('');
 }
 
 function renderAdminPlaylists(){
