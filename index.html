@@ -36,9 +36,9 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 /* HOME HEADER */
 .home-header{position:relative;padding:28px 20px 20px;background:var(--bg);overflow:hidden}
 .home-header::before{content:none}
-.header-inner{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.header-inner{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
 .header-photo{width:72px;height:72px;border-radius:50%;border:2px solid var(--red);object-fit:cover;object-position:center top;flex-shrink:0;box-shadow:0 0 0 4px var(--red-light)}
-.header-right{flex:1;min-width:0}
+.header-right{flex:0 1 auto;min-width:0}
 .logo-img{width:100%;max-width:200px;display:block;mix-blend-mode:screen}
 .header-tagline{font-size:12px;color:var(--gray2);margin-top:4px;letter-spacing:0.5px}
 
@@ -100,10 +100,17 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 .social-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--white);text-decoration:none;font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr)}
 .social-btn:hover{border-color:var(--red);color:var(--red2)}
 .social-btn svg{width:15px;height:15px}
-.event-banner{background:linear-gradient(135deg,var(--red),#8b1a1a);border-radius:var(--radius);padding:16px 20px;text-align:center;cursor:pointer;transition:transform 0.2s}
+.event-banner{background:linear-gradient(135deg,#25d366,#128c7e);border-radius:var(--radius);padding:18px 22px;text-align:center;cursor:pointer;transition:transform 0.2s;border:1px solid #25d366}
 .event-banner:hover{transform:scale(1.02);transition:var(--tr)}
-.event-banner-title{font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:2px;margin-bottom:4px}
-.event-banner-sub{font-size:12px;opacity:0.85}
+.event-banner-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;margin-bottom:4px;color:var(--white)}
+.event-banner-sub{font-size:13px;opacity:0.95;color:var(--white)}
+.event-banner-cta{display:inline-block;margin-top:10px;background:rgba(0,0,0,0.25);color:var(--white);font-weight:700;font-size:13px;padding:6px 14px;border-radius:20px;letter-spacing:0.5px}
+.apoie-card{margin:0 20px 14px;background:linear-gradient(135deg,#1a0000,#2a0808);border:1px solid rgba(192,57,43,.35);border-radius:var(--radius);padding:18px 20px;text-align:center}
+.apoie-card-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px}
+.apoie-card-sub{font-size:13px;color:var(--gray2);margin-bottom:14px}
+.apoie-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.apoie-btn{flex:1;min-width:90px;padding:10px 14px;border-radius:10px;background:var(--bg);border:1px solid rgba(255,255,255,0.15);color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.apoie-btn:hover{border-color:var(--red);background:#0a0a0a}
 
 /* SCREEN HEADER */
 .screen-header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px}
@@ -675,15 +682,24 @@ function renderHome(){
       </div>
       <span style="color:var(--gray2);font-size:22px">›</span>
     </div>
+    <div class="apoie-card">
+      <div class="apoie-card-title">☕ Apoie o Artista</div>
+      <div class="apoie-card-sub">100% vai pra música 🎸</div>
+      <div class="apoie-btns">
+        <a class="apoie-btn" onclick="copyPix()" style="cursor:pointer">💚 Pix</a>
+        ${S.config.paypalLink?`<a class="apoie-btn" href="${S.config.paypalLink}" target="_blank">💳 PayPal</a>`:''}
+        ${S.config.kofiLink?`<a class="apoie-btn" href="${S.config.kofiLink}" target="_blank">☕ Ko-fi</a>`:''}
+      </div>
+    </div>
     <div class="home-footer">
       <div class="social-links">
         <a href="https://instagram.com/sujeitorock" class="social-btn" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>Instagram</a>
-        <a href="https://wa.me/5511987017703" class="social-btn" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>WhatsApp</a>
         <a href="https://sujeitorock.com.br" class="social-btn" target="_blank">🌐 Site</a>
       </div>
       <div class="event-banner" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')">
         <div class="event-banner-title">🎸 Sujeito Rock no Seu Evento</div>
         <div class="event-banner-sub">Shows corporativos, residenciais e muito mais — fale pelo WhatsApp!</div>
+        <div class="event-banner-cta">👉 Clique aqui!</div>
       </div>
     </div>
   </div>`;
@@ -1124,8 +1140,41 @@ async function importBulk(){
 
 function renderAdminWish(){
   if(S.wishlist.length===0)return'<div class="empty-state"><div class="empty-icon">💌</div><p>Nenhuma sugestão ainda.</p></div>';
+  const pls=S.playlists.filter(p=>p.visible!==false);
   return`<p style="font-size:13px;color:var(--gray2);margin-bottom:16px">${S.wishlist.length} sugestão${S.wishlist.length!==1?'ões':''} da galera</p>
-  ${S.wishlist.map(w=>`<div class="wish-item"><div class="wish-count">${w.count||1}</div><div style="flex:1"><div style="font-weight:700;font-size:15px">${w.title}</div><div style="font-size:13px;color:var(--gray2)">${w.artist}</div></div><button onclick="removeWish('${w.id}')" style="background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer">✕</button></div>`).join('')}`;
+  ${S.wishlist.map(w=>{
+    const isOpen=S._wishAddOpen===w.id;
+    return`<div class="wish-item-wrap" style="margin-bottom:8px">
+      <div class="wish-item" style="margin-bottom:${isOpen?'0':'8px'}">
+        <div class="wish-count">${w.count||1}</div>
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">${w.title}</div><div style="font-size:13px;color:var(--gray2)">${w.artist}</div></div>
+        <button onclick="toggleWishAdd('${w.id}')" title="Adicionar à playlist" style="background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#27ae60;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:4px">${isOpen?'−':'+'}</button>
+        <button onclick="removeWish('${w.id}')" title="Apagar" style="background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      ${isOpen?`<div class="move-song-panel" style="margin:0 0 8px">
+        <div class="move-song-panel-title">Adicionar em:</div>
+        <div class="move-pl-pills">
+          ${pls.length===0?'<span style="color:var(--gray);font-size:12px">Nenhuma playlist disponível</span>':pls.map(p=>`<button class="move-pl-pill" onclick="addWishToPlaylist('${w.id}','${p.id}')">${p.emoji||'🎵'} ${p.name}</button>`).join('')}
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('')}`;
+}
+function toggleWishAdd(id){S._wishAddOpen=S._wishAddOpen===id?null:id;renderAdmin();}
+async function addWishToPlaylist(wishId,plId){
+  const w=S.wishlist.find(x=>x.id===wishId);
+  if(!w){toast('Sugestão não encontrada.');return;}
+  try{
+    const ref=await db.collection('playlists').doc(plId).collection('songs').add({title:w.title,artist:w.artist,visible:true,addedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    const pl=S.playlists.find(p=>p.id===plId);
+    const ns={id:ref.id,title:w.title,artist:w.artist,visible:true,playlistId:plId,playlistName:pl?.name};
+    if(!S.songs[plId])S.songs[plId]=[];
+    S.songs[plId].push(ns);
+    S.allSongs.push(ns);
+    await db.collection('wishlist').doc(wishId).delete();
+    S._wishAddOpen=null;
+    toast(`Adicionada em ${pl?.name||'playlist'}! 🎤`);
+  }catch(e){toast('Erro ao adicionar.');}
 }
 
 function renderAdminConfig(){
