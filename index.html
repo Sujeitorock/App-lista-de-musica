@@ -95,16 +95,20 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 .playlist-count{font-size:12px;color:var(--gray2);margin-top:4px}
 
 /* FOOTER */
-.home-footer{margin-top:auto;padding:24px 20px 36px;border-top:1px solid var(--border)}
-.social-links{display:flex;gap:8px;margin-bottom:16px;justify-content:center;flex-wrap:wrap}
-.social-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--white);text-decoration:none;font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr)}
-.social-btn:hover{border-color:var(--red);color:var(--red2)}
+.home-footer{margin-top:0;padding:0 0 36px;border-top:none}
+.social-links{display:flex;gap:0;margin:0 20px 16px}
+.social-btn{display:flex;align-items:center;justify-content:space-between;flex-direction:row;gap:12px;padding:16px 20px;background:var(--red);border:1px solid rgba(192,57,43,0.5);flex:1;color:var(--white);text-decoration:none;font-size:13px;font-weight:600;cursor:pointer;transition:var(--tr);border-radius:12px}
+.social-btn:first-child{border-radius:12px;border-right:1px solid rgba(26,140,84,0.5)}
+.social-btn:last-child{border-radius:12px}
+.social-btn:hover{border-color:var(--red);color:var(--red2);background:rgba(192,57,43,0.15)}
 .social-btn svg{width:15px;height:15px}
-.event-banner{background:linear-gradient(135deg,#25d366,#128c7e);border-radius:var(--radius);padding:18px 22px;text-align:center;cursor:pointer;transition:transform 0.2s;border:1px solid #25d366}
+.social-btn-text{display:flex;align-items:center;gap:4px}
+.social-arrow{display:inline-block;animation:pulse 1.5s infinite}
+.event-banner{margin:0 20px 20px;background:linear-gradient(135deg,#1a8c54,#0d6a45);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:transform 0.2s;border:1px solid #1a8c54;display:flex;flex-direction:column}
 .event-banner:hover{transform:scale(1.02);transition:var(--tr)}
 .event-banner-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;margin-bottom:4px;color:var(--white)}
 .event-banner-sub{font-size:13px;opacity:0.95;color:var(--white)}
-.event-banner-cta{display:inline-block;margin-top:10px;background:rgba(0,0,0,0.25);color:var(--white);font-weight:700;font-size:13px;padding:6px 14px;border-radius:20px;letter-spacing:0.5px}
+.event-banner-cta{order:-1;display:inline-block;margin-bottom:10px;background:#083d26;color:var(--white);font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;letter-spacing:0.5px;align-self:center;cursor:pointer}
 .apoie-card{margin:0 20px 14px;background:linear-gradient(135deg,#1a0000,#2a0808);border:1px solid rgba(192,57,43,.35);border-radius:var(--radius);padding:18px 20px;text-align:center}
 .apoie-card-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px}
 .apoie-card-sub{font-size:13px;color:var(--gray2);margin-bottom:14px}
@@ -692,14 +696,17 @@ function renderHome(){
       </div>
     </div>
     <div class="home-footer">
-      <div class="social-links">
-        <a href="https://instagram.com/sujeitorock" class="social-btn" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>Instagram</a>
-        <a href="https://sujeitorock.com.br" class="social-btn" target="_blank">🌐 Site</a>
-      </div>
       <div class="event-banner" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')">
+        <div class="event-banner-cta">👉 Clique aqui!</div>
         <div class="event-banner-title">🎸 Sujeito Rock no Seu Evento</div>
         <div class="event-banner-sub">Shows corporativos, residenciais e muito mais — fale pelo WhatsApp!</div>
-        <div class="event-banner-cta">👉 Clique aqui!</div>
+      </div>
+      <div class="social-links">
+        <a href="https://instagram.com/sujeitorock" class="social-btn" target="_blank">
+          <div style="font-size:13px;flex:1;line-height:1.4">Tá curtindo? Fez foto ou vídeo? <strong>Marca o Sujeito</strong></div>
+          <span class="social-arrow" style="font-size:22px;flex-shrink:0;padding:0 8px">→</span>
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px;flex-shrink:0"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </a>
       </div>
     </div>
   </div>`;
