@@ -151,7 +151,11 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 .field{margin-bottom:16px;position:relative}
 .field label{display:block;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
 .field label{color:var(--gray2)}
-.field input,.field textarea{width:100%;resize:none}
+.field input,.field textarea{width:100%;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:15px 16px;color:var(--white);font-family:'Barlow',sans-serif;font-size:17px;outline:none;transition:border-color 0.2s}
+.field input{height:54px}
+.field textarea{min-height:96px;line-height:1.45}
+.field input::placeholder,.field textarea::placeholder{color:var(--gray)}
+.field input:focus,.field textarea:focus{border-color:var(--red)}
 .optional{font-size:11px;color:var(--gray);font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px}
 
 /* AUTOCOMPLETE */
@@ -485,11 +489,11 @@ function listenReqs(){
   if(S.reqListener)S.reqListener();
   S.reqListener=db.collection('requests')
     .where('status','==','pending')
-    .orderBy('createdAt','asc')
+    .orderBy('createdAt','desc')
     .onSnapshot(snap=>{
       const newReqs=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(S.isAdmin&&newReqs.length>S._prevReqCount&&S._prevReqCount>=0){
-        const newest=newReqs[newReqs.length-1];if(newest)showNotif(newest);
+        const newest=newReqs[0];if(newest)showNotif(newest);
       }
       S._prevReqCount=newReqs.length;
       S.requests=newReqs;
@@ -810,7 +814,7 @@ function renderStep1(){
   return`<div class="screen fade-in">
     <div class="screen-header"><button class="back-btn" onclick="goBack()">←</button><div class="screen-header-info"><div class="screen-header-title">Pedir ${multi?'Músicas':'Música'}</div></div></div>
     <div class="step-screen">
-      <div class="step-pill">🎸 Passo 1 de 2</div>
+      <div class="step-pill">🎸 Seu pedido</div>
       ${songPreview}
       <div class="field">
         <label>Seu nome *</label>
@@ -830,7 +834,26 @@ function saveKnownName(name){
   try{const n=getKnownNames();if(name&&!n.includes(name)){n.unshift(name);localStorage.setItem('knownNames',JSON.stringify(n.slice(0,20)));}}catch{}
 }
 
-function submitStep1(){if(!S.requesterName.trim()){toast('Por favor, coloque seu nome! 😊');const inp=document.getElementById('inp-name');if(inp){inp.focus();inp.style.borderColor='var(--red2)';}return;}saveKnownName(S.requesterName.trim());goTo('step2');}
+function submitStep1(){if(!S.requesterName.trim()){toast('Por favor, coloque seu nome! 😊');const inp=document.getElementById('inp-name');if(inp){inp.focus();inp.style.borderColor='var(--red2)';}return;}saveKnownName(S.requesterName.trim());sendRequest();}
+// Envia o pedido direto pro Sujeito (sem passar pela tela de Pix)
+async function sendRequest(){
+  const btn=document.querySelector('.step-screen .btn-primary');
+  if(btn){if(btn.dataset.sending==='1')return;btn.dataset.sending='1';btn.textContent='Enviando...';}
+  const songs=S.selectedSongs.length>1?S.selectedSongs:[S.currentSong];
+  try{
+    const ids=[];
+    for(const song of songs){
+      const ref=await db.collection('requests').add({songTitle:song.title,songArtist:song.artist,playlistId:song.playlistId,requesterName:S.requesterName.trim()||'Anônimo',message:S.message.trim(),hasPix:false,pixAmount:0,status:'pending',adminReaction:null,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      ids.push(ref.id);
+    }
+    S.lastReqIds=ids;S.adminReaction=null;S.hasPix=false;
+    goTo('confirm');
+    startReactionListener();
+  }catch(e){
+    if(btn){btn.dataset.sending='';btn.textContent='🤘 PEDIR '+(S.selectedSongs.length>1?'ESSAS MÚSICAS':'ESSA MÚSICA');}
+    toast('Erro ao enviar. Tente novamente.');
+  }
+}
 
 function renderStep2(){
   return`<div class="screen fade-in">
@@ -909,7 +932,7 @@ function renderConfirm(){
   return`<div class="confirm-screen fade-in">
     <div class="confirm-icon">🤘</div>
     <div class="confirm-title">${count>1?count+' Pedidos':'Pedido'} Enviado${count>1?'s':''}!</div>
-    <p class="confirm-sub"><strong>${S.requesterName}</strong>, o Sujeito Rock vai tocar ${count>1?'suas músicas':'pra você'} em breve!${S.hasPix?'<br><br>💚 Obrigado pelo Pix! Você é demais!':''}</p>
+    <p class="confirm-sub"><strong>${S.requesterName}</strong>, opa, recebemos seu pedido aqui. Valeu de mais ein! 🤘</p>
     <div class="confirm-insta">📸 Marque @sujeitorock no seu story!</div>
     <button class="btn-primary" onclick="goHome()" style="max-width:280px">🎵 PEDIR OUTRA MÚSICA</button>
     <button class="btn-secondary" onclick="window.open('https://www.instagram.com/sujeitorock','_blank')" style="max-width:280px">Abrir Instagram</button>
@@ -980,9 +1003,12 @@ function renderAdmin(){
 function renderAdminContent(){switch(S.adminTab){case 'requests':return renderAdminReqs();case 'playlists':return renderAdminPlaylists();case 'songs':return renderAdminSongs();case 'wishlist':return renderAdminWish();case 'config':return renderAdminConfig();default:return'';}}
 
 function renderAdminReqs(){
-  // Só pedidos reais (a lista de sugestões/desejos fica na aba "Desejos"),
-  // em ordem de chegada (ascendente).
-  var reqs = S.requests;
+  // Só pedidos reais (a lista de sugestões/desejos fica na aba "Desejos").
+  // Ordena por ordem de CHEGADA (mais antigo primeiro) sem depender da query.
+  var reqs = S.requests.slice().sort(function(a,b){
+    var ma=a.createdAt?a.createdAt.toMillis():0, mb=b.createdAt?b.createdAt.toMillis():0;
+    return ma-mb;
+  });
   var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
     '<div class="live-badge"><div class="live-dot"></div>AO VIVO</div>' +
     '<span style="font-size:13px;color:var(--gray2)">' + reqs.length + ' pedido' + (reqs.length!==1?'s':'') + '</span>' +
