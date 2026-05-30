@@ -227,6 +227,21 @@ html,body{background:var(--bg);color:var(--white);font-family:'Barlow',sans-seri
 .req-song{font-size:14px;color:var(--gray2);margin-bottom:4px}
 .req-msg{font-size:13px;color:var(--gray2);font-style:italic;padding:6px 10px;background:var(--bg2);border-radius:6px;margin:8px 0}
 .req-actions{display:flex;gap:8px;margin-top:10px}
+.req-num{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;background:var(--red);color:#fff;border-radius:12px;font-weight:700;font-size:13px;margin-right:8px;flex-shrink:0}
+.req-also{font-size:12px;color:var(--gray2);margin-top:6px;line-height:1.5}
+.req-also b{color:var(--white);font-weight:600}
+.req-custom{display:flex;gap:6px;margin-top:8px}
+.req-custom input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;outline:none;min-width:0}
+.req-custom input:focus{border-color:var(--red)}
+.req-custom button{background:var(--red);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0}
+.report-btn{background:none;border:1px solid var(--red);color:var(--red2);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;margin-left:auto;flex-shrink:0}
+.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
+.report-modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto}
+.report-modal h3{margin-bottom:4px}
+.report-modal .cfg-field{margin-bottom:12px}
+.report-modal .cfg-field label{display:block;font-size:12px;color:var(--gray2);margin-bottom:5px;font-weight:600}
+.report-modal input,.report-modal select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;outline:none}
+.report-modal input:focus,.report-modal select:focus{border-color:var(--red)}
 .req-btn{flex:1;padding:8px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:var(--tr);text-transform:uppercase;letter-spacing:0.5px}
 .req-played{background:rgba(39,174,96,0.15);color:#27ae60;border:1px solid rgba(39,174,96,0.3)}
 .req-played:hover{background:rgba(39,174,96,0.25)}
@@ -470,11 +485,11 @@ function listenReqs(){
   if(S.reqListener)S.reqListener();
   S.reqListener=db.collection('requests')
     .where('status','==','pending')
-    .orderBy('createdAt','desc')
+    .orderBy('createdAt','asc')
     .onSnapshot(snap=>{
       const newReqs=snap.docs.map(d=>({id:d.id,...d.data()}));
       if(S.isAdmin&&newReqs.length>S._prevReqCount&&S._prevReqCount>=0){
-        const newest=newReqs[0];if(newest)showNotif(newest);
+        const newest=newReqs[newReqs.length-1];if(newest)showNotif(newest);
       }
       S._prevReqCount=newReqs.length;
       S.requests=newReqs;
@@ -965,37 +980,53 @@ function renderAdmin(){
 function renderAdminContent(){switch(S.adminTab){case 'requests':return renderAdminReqs();case 'playlists':return renderAdminPlaylists();case 'songs':return renderAdminSongs();case 'wishlist':return renderAdminWish();case 'config':return renderAdminConfig();default:return'';}}
 
 function renderAdminReqs(){
-  var wishItems = S.wishlist.map(function(w){
-    return {
-      id: 'wish_' + w.id,
-      requesterName: w.requestedBy || 'Anonimo',
-      songTitle: w.title,
-      songArtist: w.artist,
-      message: '',
-      hasPix: false,
-      pixAmount: 0,
-      createdAt: w.createdAt,
-      count: w.count,
-      isWish: true
-    };
+  // Só pedidos reais (a lista de sugestões/desejos fica na aba "Desejos"),
+  // em ordem de chegada (ascendente).
+  var reqs = S.requests;
+  var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+    '<div class="live-badge"><div class="live-dot"></div>AO VIVO</div>' +
+    '<span style="font-size:13px;color:var(--gray2)">' + reqs.length + ' pedido' + (reqs.length!==1?'s':'') + '</span>' +
+    '<button class="report-btn" onclick="openReport()">📄 Relatório</button>' +
+  '</div>';
+  if(reqs.length===0) return header + '<div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
+  // Agrupa pedidos da mesma música, preservando a ordem de chegada do 1º pedido.
+  var groups=[], map={};
+  reqs.forEach(function(r){
+    var key=(r.songTitle||'').trim().toLowerCase()+'|'+(r.songArtist||'').trim().toLowerCase();
+    if(map[key]===undefined){ map[key]=groups.length; groups.push({songTitle:r.songTitle,songArtist:r.songArtist,items:[]}); }
+    groups[map[key]].items.push(r);
   });
-  var allItems = wishItems.concat(S.requests);
-  if(allItems.length===0)return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div></div><div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
-  var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="live-badge"><div class="live-dot"></div>AO VIVO</div><span style="font-size:13px;color:var(--gray2)">' + allItems.length + ' item' + (allItems.length!==1?'ns':'') + '</span></div>';
-  allItems.forEach(function(r){
-    var t = r.createdAt ? new Date(r.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
-    var REACOES = ['🤘','Yeaaah!','Otima musica!','Deixa comigo!','Bom gosto!','Classico!'];
-    html += '<div class="request-card' + (r.hasPix?' has-pix':'') + (r.isWish?' wish-request':'') + '">' +
-    '<div class="req-header"><div class="req-name">' + (r.requesterName||'Anonimo') + '</div>' + (r.hasPix?'<span class="pix-badge">💰 PIX R$'+(r.pixAmount||'?')+'</span>':'') + '<span class="req-time">' + t + '</span></div>' +
-    '<div class="req-song">🎵 <strong>' + r.songTitle + '</strong> — ' + r.songArtist + '</div>' +
-    (r.message && !r.isWish ? '<div class="req-msg">"' + r.message + '"</div>' : '') +
-    '<div class="req-reactions">' +
-      REACOES.map(function(rx,i){
-        return '<button class="reaction-btn' + (r.adminReaction===rx?' sent':'') + '" onclick="sendReaction(\'' + r.id + '\',\'' + rx + '\')">' + rx + '</button>';
-      }).join('') +
-    '</div>' +
-    '<div class="req-actions"><button class="req-btn req-played" onclick="' + (r.isWish ? 'dismissWishItem' : 'markPlayed') + '(\'' + r.id + '\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="' + (r.isWish ? 'dismissWishItem' : 'dismissReq') + '(\'' + r.id + '\')">✕ Descartar</button></div>' +
-       '</div>';
+  var html = header;
+  groups.forEach(function(g,gi){
+    var head=g.items[0];
+    var idsCsv=g.items.map(function(x){return x.id;}).join(',');
+    var anyPix=g.items.some(function(x){return x.hasPix;});
+    var totalPix=g.items.reduce(function(s,x){return s+(x.pixAmount||0);},0);
+    var t=head.createdAt ? new Date(head.createdAt.toMillis()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+    var inpId='crx-'+head.id;
+    var alsoHtml='';
+    if(g.items.length>1){
+      var others=g.items.slice(1).map(function(x){return (x.requesterName||'Anônimo')+(x.hasPix?' 💰':'');});
+      alsoHtml='<div class="req-also">➕ Também pediram: <b>'+others.join('</b>, <b>')+'</b></div>';
+    }
+    var msgs=g.items.filter(function(x){return x.message&&x.message.trim();}).map(function(x){return '"'+x.message.trim()+'" — '+(x.requesterName||'Anônimo');});
+    var msgHtml=msgs.length ? '<div class="req-msg">'+msgs.join('<br>')+'</div>' : '';
+    html += '<div class="request-card'+(anyPix?' has-pix':'')+'">' +
+      '<div class="req-header"><span class="req-num">'+(gi+1)+'</span>' +
+        '<div class="req-name">'+(head.requesterName||'Anônimo')+(g.items.length>1?' <span style="color:var(--gray2);font-weight:600">(+'+(g.items.length-1)+')</span>':'')+'</div>' +
+        (anyPix?'<span class="pix-badge">💰 PIX R$'+totalPix+'</span>':'') +
+        '<span class="req-time">'+t+'</span></div>' +
+      '<div class="req-song">🎵 <strong>'+head.songTitle+'</strong> — '+head.songArtist+'</div>' +
+      alsoHtml +
+      msgHtml +
+      '<div class="req-reactions">' +
+        _REACOES.map(function(rx){
+          return '<button class="reaction-btn'+(head.adminReaction===rx?' sent':'')+'" onclick="sendReactionGroup(\''+idsCsv+'\',\''+rx.replace(/'/g,"\\'")+'\')">'+rx+'</button>';
+        }).join('') +
+      '</div>' +
+      '<div class="req-custom"><input type="text" id="'+inpId+'" placeholder="Escrever resposta..." onkeydown="if(event.key===\'Enter\')sendCustomReactionGroup(\''+idsCsv+'\',\''+inpId+'\')"><button onclick="sendCustomReactionGroup(\''+idsCsv+'\',\''+inpId+'\')">Enviar</button></div>' +
+      '<div class="req-actions"><button class="req-btn req-played" onclick="markPlayedGroup(\''+idsCsv+'\')">✅ Tocou!</button><button class="req-btn req-dismiss" onclick="dismissReqGroup(\''+idsCsv+'\')">✕ Descartar</button></div>' +
+    '</div>';
   });
   return html;
 }
@@ -1339,8 +1370,34 @@ async function addSong(){
   document.getElementById('new-s-title').value='';
   toast('Música adicionada! 🎤');renderAdmin();}catch(e){toast('Erro ao adicionar.');}
 }
-async function markPlayed(id){try{await db.collection('requests').doc(id).update({status:'played'});toast('Marcado como tocado! 🎸');}catch(e){toast('Erro.');}}
+async function markPlayed(id){try{await db.collection('requests').doc(id).update({status:'played',playedAt:firebase.firestore.FieldValue.serverTimestamp()});toast('Marcado como tocado! 🎸');}catch(e){toast('Erro.');}}
 async function dismissReq(id){try{await db.collection('requests').doc(id).update({status:'dismissed'});}catch(e){toast('Erro.');}}
+// ── Ações em GRUPO (quando várias pessoas pedem a mesma música) ──
+function _ids(csv){return (csv||'').split(',').filter(Boolean);}
+async function markPlayedGroup(idsCsv){
+  var ids=_ids(idsCsv);if(!ids.length)return;
+  try{var b=db.batch();ids.forEach(function(id){b.update(db.collection('requests').doc(id),{status:'played',playedAt:firebase.firestore.FieldValue.serverTimestamp()});});await b.commit();toast('Tocou! 🎸');}catch(e){toast('Erro.');}
+}
+async function dismissReqGroup(idsCsv){
+  var ids=_ids(idsCsv);if(!ids.length)return;
+  try{var b=db.batch();ids.forEach(function(id){b.update(db.collection('requests').doc(id),{status:'dismissed'});});await b.commit();}catch(e){toast('Erro.');}
+}
+async function sendReactionGroup(idsCsv,reaction){
+  var ids=_ids(idsCsv);if(!ids.length)return;
+  try{
+    var b=db.batch();
+    ids.forEach(function(id){b.update(db.collection('requests').doc(id),{adminReaction:reaction,reactionAt:firebase.firestore.FieldValue.serverTimestamp()});});
+    await b.commit();
+    toast(ids.length>1?('Reação enviada pra '+ids.length+' pessoas! '+reaction):('Reação enviada! '+reaction));
+  }catch(e){toast('Erro ao enviar reação.');}
+}
+function sendCustomReactionGroup(idsCsv,inpId){
+  var el=document.getElementById(inpId);
+  var msg=el?(el.value||'').trim():'';
+  if(!msg){toast('Escreva algo primeiro!');return;}
+  sendReactionGroup(idsCsv,msg);
+  if(el)el.value='';
+}
 // Lê o ID e reação via data-attributes (evita problemas com emojis/acentos no onclick)
 const _REACOES=['🤘','Yeaaah!','Ótima música!','Deixa comigo!','Bom gosto!','🔥 Clássico!'];
 function doReaction(btn){
@@ -1564,6 +1621,84 @@ function sendCustomReaction(id,val){
   if(!msg){toast('Escreva algo primeiro!');return;}
   sendReaction(id,msg);
   try{const el=document.getElementById('crx-'+id);if(el)el.value='';}catch(e){}
+}
+// ═══ RELATÓRIO DE PEDIDOS ═══
+function openReport(){
+  if(document.getElementById('report-ov'))return;
+  var hoje=new Date().toISOString().slice(0,10);
+  var ov=document.createElement('div');ov.className='report-overlay';ov.id='report-ov';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  ov.innerHTML='<div class="report-modal">'+
+    '<h3>📄 Relatório de Pedidos</h3>'+
+    '<p style="font-size:12px;color:var(--gray2);margin-bottom:14px">Gera a lista de músicas pedidas com os nomes. Preencha o local e envie pelo WhatsApp ou baixe em texto.</p>'+
+    '<div class="cfg-field"><label>Local / Evento</label><input type="text" id="rep-place" placeholder="Ex: Bar do Zé — São Paulo"></div>'+
+    '<div class="cfg-field"><label>Data</label><input type="date" id="rep-date" value="'+hoje+'"></div>'+
+    '<div class="cfg-field"><label>Incluir</label><select id="rep-scope"><option value="played">Só as que tocaram</option><option value="all">Todos os pedidos</option></select></div>'+
+    '<div style="display:flex;gap:8px;margin-top:6px">'+
+      '<button class="req-btn req-played" onclick="sendReportWhats()">📲 WhatsApp</button>'+
+      '<button class="req-btn" style="background:var(--bg3);color:#fff;border:1px solid var(--border)" onclick="downloadReport()">⬇️ Baixar .txt</button>'+
+    '</div>'+
+    '<button class="req-btn req-dismiss" style="width:100%;margin-top:8px" onclick="clearPlayed()">🧹 Limpar pedidos já tocados/descartados</button>'+
+    '<button class="btn-secondary" style="margin-top:12px;width:100%" onclick="document.getElementById(\'report-ov\').remove()">Fechar</button>'+
+  '</div>';
+  document.body.appendChild(ov);
+}
+async function _reportDocs(scope){
+  var docs;
+  try{
+    var snap=await db.collection('requests').orderBy('createdAt','asc').limit(1000).get();
+    docs=snap.docs.map(function(d){return d.data();});
+  }catch(e){ docs=(S.requests||[]).slice(); }
+  return docs.filter(function(d){ return scope==='all' ? d.status!=='dismissed' : d.status==='played'; });
+}
+async function buildReportText(){
+  var place=(document.getElementById('rep-place')?.value||'').trim()||'(local não informado)';
+  var date=document.getElementById('rep-date')?.value||'';
+  var scope=document.getElementById('rep-scope')?.value||'played';
+  var docs=await _reportDocs(scope);
+  var groups=[], map={};
+  docs.forEach(function(r){
+    var key=(r.songTitle||'').trim().toLowerCase()+'|'+(r.songArtist||'').trim().toLowerCase();
+    if(map[key]===undefined){map[key]=groups.length;groups.push({songTitle:r.songTitle,songArtist:r.songArtist,names:[]});}
+    groups[map[key]].names.push(r.requesterName||'Anônimo');
+  });
+  var txt='🎸 SUJEITO ROCK — RELATÓRIO DE PEDIDOS\n';
+  txt+='Local: '+place+'\n';
+  if(date)txt+='Data: '+date.split('-').reverse().join('/')+'\n';
+  txt+='Músicas: '+groups.length+'\n';
+  txt+='--------------------------------\n';
+  groups.forEach(function(g,i){
+    txt+=(i+1)+'. '+g.songTitle+' — '+g.songArtist+'\n   Pedido por: '+g.names.join(', ')+'\n';
+  });
+  if(!groups.length)txt+='(nenhum pedido neste filtro)\n';
+  return txt;
+}
+async function sendReportWhats(){
+  var txt=await buildReportText();
+  var num=(S.config.whatsapp||'').replace(/\D/g,'');
+  if(num&&num.indexOf('55')!==0)num='55'+num;
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(txt),'_blank');
+}
+async function downloadReport(){
+  var txt=await buildReportText();
+  try{
+    var blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var place=((document.getElementById('rep-place')?.value||'pedidos').trim()||'pedidos').replace(/[^\w\-]+/g,'_');
+    var a=document.createElement('a');a.href=url;a.download='relatorio_'+place+'.txt';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    toast('Relatório baixado! ⬇️');
+  }catch(e){toast('Erro ao baixar.');}
+}
+async function clearPlayed(){
+  if(!confirm('Apagar de vez os pedidos já TOCADOS e DESCARTADOS? Gere o relatório antes! Os pedidos que ainda estão na fila não serão apagados.'))return;
+  try{
+    var snap=await db.collection('requests').where('status','in',['played','dismissed']).limit(500).get();
+    if(snap.empty){toast('Nada para limpar.');return;}
+    var b=db.batch();snap.docs.forEach(function(d){b.delete(d.ref);});await b.commit();
+    toast('Limpo! App mais leve 🧹 ('+snap.size+')');
+  }catch(e){toast('Erro ao limpar.');}
 }
 // ═══ BOOT ═══
   
