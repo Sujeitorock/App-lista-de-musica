@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0a0a0a">
 <title>SujeitoRock — Peça sua Música</title>
@@ -37,7 +37,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .icon-btn{background:none;border:none;padding:4px;cursor:pointer;transition:color 0.2s;color:var(--gray)}
 
 /* HOME HEADER */
-.home-header{position:relative;padding:28px 20px 20px;background:var(--bg);overflow:hidden}
+.home-header{position:relative;padding:env(safe-area-inset-top,28px) 20px 20px;padding-top:max(28px,env(safe-area-inset-top));background:transparent;overflow:hidden}
 .home-header::before{content:none}
 .header-inner{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
 .header-photo{width:72px;height:72px;border-radius:50%;border:2px solid var(--red);object-fit:cover;object-position:center top;flex-shrink:0;box-shadow:0 0 0 4px var(--red-light)}
@@ -71,7 +71,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .delete-pl-btn:hover{color:var(--red2)}
 .search-bar{margin:0 20px 16px;position:relative}
 .search-bar input{width:100%;padding:12px 20px 12px 44px;border-radius:30px}
-.search-bar input{all:unset;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:30px;padding:12px 20px 12px 44px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;transition:border-color 0.2s}
+.search-bar input{all:unset;box-sizing:border-box;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:30px;padding:12px 20px 12px 44px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;transition:border-color 0.2s}
 .search-bar input::placeholder{color:var(--gray)}
 .search-bar input:focus{border-color:var(--red)}
 .search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--gray);font-size:18px}
@@ -116,6 +116,12 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .event-banner-sub{font-size:13px;opacity:0.95;color:var(--white)}
 .event-banner-cta{order:-1;display:inline-block;margin-bottom:10px;background:#083d26;color:var(--white);font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;letter-spacing:0.5px;align-self:center;cursor:pointer}
 .apoie-card{margin:0 20px 14px;background:linear-gradient(135deg,#1a0000,#2a0808);border:1px solid rgba(192,57,43,.35);border-radius:var(--radius);padding:18px 20px;text-align:center}
+.banner-img{margin:0 20px 14px;cursor:pointer;border-radius:var(--radius);overflow:hidden;transition:transform .2s}
+.banner-img:active{transform:scale(0.98)}
+.banner-img img{display:block;width:100%}
+.apoie-card.apoie-card-img{padding:0;overflow:hidden;background:#000}
+.apoie-card-img img{display:block;width:100%}
+.apoie-card-img .apoie-btns{padding:0 16px 16px}
 .apoie-card-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px}
 .apoie-card-sub{font-size:13px;color:var(--gray2);margin-bottom:14px}
 .apoie-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
@@ -691,7 +697,7 @@ function renderHome(){
       <div class="header-inner">
         <img src="${FOTO_DATA}" alt="Sujeito Rock" class="header-photo">
         <div class="header-right">
-          <img src="${LOGO_DATA}" alt="SujeitoRock" class="logo-img" style="mix-blend-mode:screen">
+          <img src="logo.jpg" alt="SujeitoRock" class="logo-img" style="mix-blend-mode:screen">
           <div class="header-tagline">Peça agora sua música 🎸</div>
         </div>
       </div>
@@ -710,17 +716,10 @@ function renderHome(){
       </div>
       ${(playlists.length===0&&playlistsLoaded)?'<div class="empty-state"><div class="empty-icon">🎸</div><p>O repertório está sendo preparado!</p></div>':''}
     </div>
-    <div class="shows-banner" onclick="goTo('shows')">
-      <div class="shows-banner-icon">📅</div>
-      <div class="shows-banner-info">
-        <div class="shows-banner-title">Próximos Shows</div>
-        <div class="shows-banner-sub">Onde e quando o Sujeito Rock toca ao vivo</div>
-      </div>
-      <span style="color:var(--gray2);font-size:22px">›</span>
-    </div>
-    <div class="apoie-card">
-      <div class="apoie-card-title">☕ Apoie o Artista</div>
-      <div class="apoie-card-sub">100% vai pra música 🎸</div>
+    <div class="banner-img" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')"><img src="evento-whats.jpg" alt="Sujeito Rock no Seu Evento — fale pelo WhatsApp" loading="lazy"></div>
+    <div class="banner-img" onclick="window.open('https://instagram.com/sujeitorock','_blank')"><img src="marca-sujeito.jpg" alt="Marca o Sujeito no Instagram" loading="lazy"></div>
+    <div class="apoie-card apoie-card-img">
+      <img src="apoie-artista.jpg" alt="Apoie o Artista" loading="lazy">
       <div class="apoie-btns">
         <a class="apoie-btn" onclick="copyPix()" style="cursor:pointer">💚 Pix</a>
         ${S.config.paypalLink?`<a class="apoie-btn" href="${S.config.paypalLink}" target="_blank">💳 PayPal</a>`:''}
@@ -728,12 +727,8 @@ function renderHome(){
       </div>
     </div>
     <div class="home-footer">
-      <div class="event-banner" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')">
-        <div class="event-banner-cta">👉 Clique aqui!</div>
-        <div class="event-banner-title">🎸 Sujeito Rock no Seu Evento</div>
-        <div class="event-banner-sub">Shows corporativos, residenciais e muito mais — fale pelo WhatsApp!</div>
-      </div>
-      <div class="social-links">
+      <div class="banner-img" onclick="goTo('shows')"><img src="proximos-shows.jpg" alt="Próximos Shows" loading="lazy"></div>
+      <div class="social-links" style="display:none">
         <a href="https://instagram.com/sujeitorock" class="social-btn" target="_blank">
           <div style="font-size:13px;flex:1;line-height:1.4">Tá curtindo? Fez foto ou vídeo? <strong>Marca o Sujeito</strong></div>
           <span class="social-arrow" style="font-size:22px;flex-shrink:0;padding:0 8px">→</span>
