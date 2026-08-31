@@ -93,6 +93,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .playlist-card:hover::after{transform:scaleX(1)}
 .playlist-card:active{transform:scale(0.97)}
 .playlist-card.special{background:linear-gradient(135deg,#1a0000,#2a0808);border-color:var(--red-border)}
+.playlist-card.test-border{border:1px solid rgba(255,255,255,0.45)}
 .playlist-card-img{padding:0;display:flex;flex-direction:column;background:var(--bg3)}
 .playlist-card-img img{display:block;width:100%;height:auto;border-radius:var(--radius) var(--radius) 0 0}
 .playlist-card-img .playlist-count{margin:0;padding:5px 10px 7px;text-align:right}
@@ -710,10 +711,11 @@ function render(){
 
 const BTN_IMG={"recemadicionadas":"newly-added.jpg","recentlyadded":"newly-added.jpg","nacionais":"nacionais.jpg","nationals":"nacionais.jpg","pop":"pop.jpg","80s":"80s.jpg","anos80":"80s.jpg","lovesongs":"love-songs.jpg","lovesong":"love-songs.jpg","90s":"90s.jpg","anos90":"90s.jpg","2000s":"2000s.jpg","anos2000":"2000s.jpg","alternativerock":"alt-rock.jpg","alternativesrock":"alt-rock.jpg","rockalternativo":"alt-rock.jpg","punkrockpop":"punk-rock-pop.jpg","punkrocksongs":"punk-rock-pop.jpg","punkrocksong":"punk-rock-pop.jpg","punkrock":"punk-rock-pop.jpg","allsongs":"all-songs.jpg","todasasmusicas":"all-songs.jpg","soundtrackmovies":"soundtrack.jpg","soudntrackmovies":"soundtrack.jpg","soundtrackmovie":"soundtrack.jpg","trilhasonora":"soundtrack.jpg","trilhassonoras":"soundtrack.jpg","hardrockmetal":"hard-rock-metal.jpg","softsongs":"soft-songs.jpg","softsong":"soft-songs.jpg","acousticshow":"acoustic.jpg","acousticsongs":"acoustic.jpg","acoustic":"acoustic.jpg","acustico":"acoustic.jpg","showacustico":"acoustic.jpg"};
 function btnImg(name){if(!name)return null;const k=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]/g,"");return BTN_IMG[k]||null;}
-function plCard(onclick,name,emoji,count,special){
+function plCard(onclick,name,emoji,count,special,testBorder){
   const img=btnImg(name);
-  if(img)return'<div class="playlist-card playlist-card-img" onclick="'+onclick+'"><img src="'+img+'" alt="'+name+'" loading="lazy"><div class="playlist-count">'+count+' músicas</div></div>';
-  return'<div class="playlist-card '+(special?"special":"")+'" onclick="'+onclick+'"><span class="playlist-emoji">'+emoji+'</span><div class="playlist-name">'+name+'</div><div class="playlist-count">'+count+' músicas</div></div>';
+  const tb=testBorder?' test-border':'';
+  if(img)return'<div class="playlist-card playlist-card-img'+tb+'" onclick="'+onclick+'"><img src="'+img+'" alt="'+name+'" loading="lazy"><div class="playlist-count">'+count+' músicas</div></div>';
+  return'<div class="playlist-card '+(special?"special":"")+tb+'" onclick="'+onclick+'"><span class="playlist-emoji">'+emoji+'</span><div class="playlist-name">'+name+'</div><div class="playlist-count">'+count+' músicas</div></div>';
 }
 function renderHome(){
   const playlists=S.playlists.filter(p=>p.visible!==false);
@@ -739,8 +741,11 @@ function renderHome(){
       ${(!playlistsLoaded&&playlists.length===0)?'<div class="loading"><div class="spinner"></div></div>':''}
       ${(playlists.length>0||recent.length>0)?'<p class="section-title">Repertório</p>':''}
     <div class="playlists-grid">
-        ${recent.length>0?plCard("openRecent()","Recém Adicionadas","⚡",recent.length,true):''}
-        ${playlists.map(pl=>plCard("openPlaylist('"+pl.id+"')",pl.name,pl.emoji||'🎵',((S.songs[pl.id]||[]).filter(s=>s.visible!==false).length),false)).join('')}
+        ${(()=>{let i=0;const cards=[];
+          if(recent.length>0)cards.push(plCard("openRecent()","Recém Adicionadas","⚡",recent.length,true,i++<2));
+          playlists.forEach(pl=>cards.push(plCard("openPlaylist('"+pl.id+"')",pl.name,pl.emoji||'🎵',((S.songs[pl.id]||[]).filter(s=>s.visible!==false).length),false,i++<2)));
+          return cards.join('');
+        })()}
       </div>
       ${(playlists.length===0&&playlistsLoaded)?'<div class="empty-state"><div class="empty-icon">🎸</div><p>O repertório está sendo preparado!</p></div>':''}
     </div>
