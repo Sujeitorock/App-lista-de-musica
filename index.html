@@ -234,7 +234,9 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 /* REQUEST CARD */
 .request-card{padding:14px 16px;margin-bottom:10px}
 .request-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px}
-.request-card.wish-request{border-color:rgba(192,57,43,0.5);background:var(--red-dark)}
+.request-card.wish-request{border-color:rgba(241,196,15,0.55);background:linear-gradient(135deg,#2a2408,#1e1e1e)}
+.wish-badge{background:rgba(241,196,15,0.15);color:#f1c40f;border:1px solid rgba(241,196,15,0.35);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.3px;white-space:nowrap}
+.wish-date{font-size:11px;color:var(--gray2);margin-top:2px}
 .request-card.has-pix{border-color:var(--red-border2);background:linear-gradient(135deg,#1a0808,#1e1e1e)}
 .req-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .pix-badge{background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.5px}
@@ -480,7 +482,7 @@ const S={
   searchQuery:'',searchResults:[],suggestTitle:'',suggestArtist:'',
   selectedSongs:[],selectionMode:false,_movingSong:null,
   isAdmin:false,adminTab:'requests',adminSongsPl:null,adminBulkSel:[],adminBulkMoving:false,
-  _plSearch:'',_prevReqCount:0,_notifPerm:false,
+  _plSearch:'',_prevReqCount:0,_prevWishCount:0,_notifPerm:false,
   reqListener:null,wishListener:null,
   lastReqIds:[],adminReaction:null,_reactionListener:null,showsData:[],showsLoaded:false,showsError:null,_showsFetching:false
 };
@@ -519,7 +521,16 @@ function listenReqs(){
 }
 function listenWish(){
   if(S.wishListener)S.wishListener();
-  S.wishListener=db.collection('wishlist').orderBy('count','desc').onSnapshot(snap=>{S.wishlist=snap.docs.map(d=>({id:d.id,...d.data()}));if(S.isAdmin&&S.adminTab==='wishlist')renderAdmin();});
+  S.wishListener=db.collection('wishlist').orderBy('count','desc').onSnapshot(snap=>{
+    const newWish=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(S.isAdmin&&newWish.length>S._prevWishCount&&S._prevWishCount>=0){
+      const added=newWish.find(w=>!S.wishlist.some(old=>old.id===w.id));
+      if(added)showWishNotif(added);
+    }
+    S._prevWishCount=newWish.length;
+    S.wishlist=newWish;
+    if(S.isAdmin&&(S.adminTab==='wishlist'||S.adminTab==='requests'))renderAdmin();
+  });
 }
 
 // ═══ SERVICE WORKER (notificações reais no Android) ═══
@@ -563,6 +574,23 @@ function showNotif(req){
     }
   }
   // No APK — notificação vem do Java, lista já atualiza pelo listener
+}
+function showWishNotif(w){
+  playNotifSound();
+  if(!_isAndroidApp){
+    const old=document.querySelector('.notif-popup');if(old)old.remove();
+    const div=document.createElement('div');div.className='notif-popup';
+    div.innerHTML='<div class="notif-icon">💌</div><div class="notif-text"><div class="notif-title">'+(w.requestedBy||'Alguém')+' sugeriu uma música!</div><div class="notif-sub">'+w.title+' — '+w.artist+' (não tá na lista)</div></div>';
+    document.body.appendChild(div);
+    setTimeout(()=>{div.style.opacity='0';div.style.transition='opacity 0.3s';setTimeout(()=>div.remove(),300);},5000);
+    if(Notification.permission==='granted'){
+      const title='💌 Nova sugestão!';
+      const body=(w.requestedBy||'Alguém')+' sugeriu: '+w.title+' — '+w.artist+' (não tá na lista)';
+      const sw=_swReg?.active||navigator.serviceWorker.controller;
+      if(sw){sw.postMessage({type:'SHOW_NOTIF',title,body,url:location.href});}
+      else{try{new Notification(title,{body,tag:'sugestao-nova',requireInteraction:true});}catch(e){}}
+    }
+  }
 }
 async function requestNotifPerm(){
   if(!('Notification' in window))return;
@@ -1011,27 +1039,54 @@ function renderAdmin(){
 function renderAdminContent(){switch(S.adminTab){case 'requests':return renderAdminReqs();case 'playlists':return renderAdminPlaylists();case 'songs':return renderAdminSongs();case 'wishlist':return renderAdminWish();case 'config':return renderAdminConfig();default:return'';}}
 
 function renderAdminReqs(){
-  // Só pedidos reais (a lista de sugestões/desejos fica na aba "Desejos").
+  // Pedidos reais + sugestões da lista de desejos (música fora do repertório), juntos em ordem de chegada.
   // Ordena por ordem de CHEGADA (mais antigo primeiro) sem depender da query.
   var reqs = S.requests.slice().sort(function(a,b){
     var ma=a.createdAt?a.createdAt.toMillis():0, mb=b.createdAt?b.createdAt.toMillis():0;
     return ma-mb;
   });
-  var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+  var wishes = S.wishlist.slice().sort(function(a,b){
+    var ma=a.createdAt?a.createdAt.toMillis():0, mb=b.createdAt?b.createdAt.toMillis():0;
+    return ma-mb;
+  });
+  var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">' +
     '<div class="live-badge"><div class="live-dot"></div>AO VIVO</div>' +
-    '<span style="font-size:13px;color:var(--gray2)">' + reqs.length + ' pedido' + (reqs.length!==1?'s':'') + '</span>' +
+    '<span style="font-size:13px;color:var(--gray2)">' + reqs.length + ' pedido' + (reqs.length!==1?'s':'') + (wishes.length>0?' · '+wishes.length+' fora da lista':'') + '</span>' +
     '<button class="report-btn" onclick="openReport()">📄 Relatório</button>' +
   '</div>';
-  if(reqs.length===0) return header + '<div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
-  // Agrupa pedidos da mesma música, preservando a ordem de chegada do 1º pedido.
+  if(reqs.length===0&&wishes.length===0) return header + '<div class="empty-state"><div class="empty-icon">🎸</div><p>Nenhum pedido ainda.<br>Aparecem aqui em tempo real!</p></div>';
+  // Agrupa pedidos reais da mesma música, preservando a ordem de chegada do 1º pedido.
   var groups=[], map={};
   reqs.forEach(function(r){
     var key=(r.songTitle||'').trim().toLowerCase()+'|'+(r.songArtist||'').trim().toLowerCase();
-    if(map[key]===undefined){ map[key]=groups.length; groups.push({songTitle:r.songTitle,songArtist:r.songArtist,items:[]}); }
+    if(map[key]===undefined){ map[key]=groups.length; groups.push({isWish:false,songTitle:r.songTitle,songArtist:r.songArtist,items:[],time:r.createdAt?r.createdAt.toMillis():0}); }
     groups[map[key]].items.push(r);
   });
+  // Sugestões que não estão na lista viram cards próprios, com bordinha diferente.
+  wishes.forEach(function(w){
+    groups.push({isWish:true,songTitle:w.title,songArtist:w.artist,wishId:w.id,count:w.count||1,requestedBy:w.requestedBy,time:w.createdAt?w.createdAt.toMillis():0});
+  });
+  // Ordem de chegada combinada (pedidos reais + desejos misturados).
+  groups.sort(function(a,b){return (a.time||0)-(b.time||0);});
   var html = header;
   groups.forEach(function(g,gi){
+    if(g.isWish){
+      var isOpen=S._wishAddOpen===g.wishId;
+      var wt=g.time ? new Date(g.time).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      var pls=S.playlists.filter(function(p){return p.visible!==false;});
+      html += '<div class="request-card wish-request">' +
+        '<div class="req-header"><span class="req-num">'+(gi+1)+'</span>' +
+          '<div class="req-name">'+(g.requestedBy||'Anônimo')+(g.count>1?' <span style="color:var(--gray2);font-weight:600">('+g.count+'x)</span>':'')+'</div>' +
+          '<span class="wish-badge">💌 Não tá na lista</span></div>' +
+        '<div class="req-song">🎵 <strong>'+g.songTitle+'</strong> — '+g.songArtist+'</div>' +
+        '<div class="wish-date">🕐 '+wt+'</div>' +
+        '<div class="req-actions"><button class="req-btn req-played" onclick="toggleWishAdd(\''+g.wishId+'\')">'+(isOpen?'− Fechar':'➕ Adicionar à lista')+'</button><button class="req-btn req-dismiss" onclick="removeWish(\''+g.wishId+'\')">✕ Remover</button></div>' +
+        (isOpen?'<div class="move-song-panel" style="margin-top:10px"><div class="move-song-panel-title">Adicionar em:</div><div class="move-pl-pills">'+
+          (pls.length===0?'<span style="color:var(--gray);font-size:12px">Nenhuma playlist disponível</span>':pls.map(function(p){return '<button class="move-pl-pill" onclick="addWishToPlaylist(\''+g.wishId+'\',\''+p.id+'\')">'+(p.emoji||'🎵')+' '+p.name+'</button>';}).join(''))+
+        '</div></div>':'') +
+      '</div>';
+      return;
+    }
     var head=g.items[0];
     var idsCsv=g.items.map(function(x){return x.id;}).join(',');
     var anyPix=g.items.some(function(x){return x.hasPix;});
@@ -1216,10 +1271,11 @@ function renderAdminWish(){
   return`<p style="font-size:13px;color:var(--gray2);margin-bottom:16px">${S.wishlist.length} sugestão${S.wishlist.length!==1?'ões':''} da galera</p>
   ${S.wishlist.map(w=>{
     const isOpen=S._wishAddOpen===w.id;
+    const wt=w.createdAt?new Date(w.createdAt.toMillis()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     return`<div class="wish-item-wrap" style="margin-bottom:8px">
       <div class="wish-item" style="margin-bottom:${isOpen?'0':'8px'}">
         <div class="wish-count">${w.count||1}</div>
-        <div style="flex:1"><div style="font-weight:700;font-size:15px">${w.title}</div><div style="font-size:13px;color:var(--gray2)">${w.artist}</div></div>
+        <div style="flex:1"><div style="font-weight:700;font-size:15px">${w.title}</div><div style="font-size:13px;color:var(--gray2)">${w.artist}</div>${wt?`<div class="wish-date">🕐 ${wt}</div>`:''}</div>
         <button onclick="toggleWishAdd('${w.id}')" title="Adicionar à playlist" style="background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#27ae60;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:4px">${isOpen?'−':'+'}</button>
         <button onclick="removeWish('${w.id}')" title="Apagar" style="background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer">✕</button>
       </div>
