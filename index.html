@@ -280,8 +280,6 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .toggle.on::after{background:var(--red);transform:translateX(20px)}
 .manage-btn{background:none;border:1px solid var(--border);color:var(--gray2);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:var(--tr)}
 .manage-btn:hover{border-color:var(--red2);color:var(--red2)}
-.solo-pl-btn{background:none;border:1px solid var(--border);color:var(--gray2);padding:6px 9px;border-radius:6px;font-size:13px;cursor:pointer;font-family:'Barlow',sans-serif;transition:var(--tr)}
-.solo-pl-btn:hover{border-color:#f1c40f;color:#f1c40f;background:rgba(241,196,15,0.1)}
 .admin-song-item{padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .admin-song-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px}
 .admin-song-info{flex:1}
@@ -1141,18 +1139,15 @@ function renderAdminPlaylists(){
     };
   });
   S.songs['__wish__'] = wishSongs;
-  var anyHidden = S.playlists.some(function(p){return p.visible===false;});
   return '<div class="add-form"><h4>Nova Playlist</h4>' +
     '<div class="field" style="display:flex;gap:8px"><input type="text" id="new-pl-emoji" placeholder="🎵" style="width:70px"><input type="text" id="new-pl-name" placeholder="Nome da playlist" style="flex:1"></div>' +
     '<button class="btn-add" onclick="addPlaylist()">+ Adicionar</button>' +
     '</div>' +
-    (anyHidden?'<button class="btn-secondary" style="margin-bottom:16px" onclick="showAllPlaylists()">👁 Mostrar todas as playlists de novo</button>':'') +
     (S.playlists.length===0?'<div class="empty-state"><div class="empty-icon">🎵</div><p>Nenhuma playlist criada.<br>Adicione uma acima!</p></div>':
     S.playlists.map(function(pl){
       return '<div class="admin-pl-item">' +
         '<span style="font-size:24px">' + (pl.emoji||'🎵') + '</span>' +
         '<div style="flex:1"><div class="admin-pl-name">' + pl.name + '</div><div class="admin-pl-count">' + (S.songs[pl.id]||[]).length + ' músicas</div></div>' +
-        '<button class="solo-pl-btn" onclick="soloPlaylist(\'' + pl.id + '\')" title="Deixar só esta visível (oculta as outras)">🎯</button>' +
         '<button class="manage-btn" onclick="setTab(\'songs\',\'' + pl.id + '\')">Músicas</button>' +
         '<button class="delete-pl-btn" onclick="deletePlaylist(\'' + pl.id + '\')" title="Apagar playlist">🗑</button>' +
         '<div class="toggle ' + (pl.visible!==false?'on':'') + '" onclick="togglePl(\'' + pl.id + '\',' + (pl.visible!==false) + ')"></div>' +
@@ -1442,42 +1437,6 @@ async function doLogout(){
 }
 function setTab(tab,plId){S.adminTab=tab;if(plId)S.adminSongsPl=plId;renderAdmin();}
 async function togglePl(plId,cur){try{const newVal=!cur;await db.collection('playlists').doc(plId).update({visible:newVal});const pl=S.playlists.find(p=>p.id===plId);if(pl)pl.visible=newVal;const songs=S.songs[plId]||[];for(const s of songs){await db.collection('playlists').doc(plId).collection('songs').doc(s.id).update({visible:newVal});s.visible=newVal;const a=S.allSongs.find(x=>x.id===s.id&&x.playlistId===plId);if(a)a.visible=newVal;}renderAdmin();}catch(e){toast('Erro.');}}
-// Aplica visible=vis numa playlist inteira (+ suas músicas) usando batched writes, em lotes de 450 (limite do Firestore é 500 por batch).
-async function bulkSetPlaylistVisibility(pairs){
-  let batch=db.batch(),n=0;
-  const flush=async()=>{if(n>0){await batch.commit();batch=db.batch();n=0;}};
-  for(const {plId,vis} of pairs){
-    batch.update(db.collection('playlists').doc(plId),{visible:vis});n++;
-    if(n>=450)await flush();
-    const pl=S.playlists.find(p=>p.id===plId);if(pl)pl.visible=vis;
-    const songs=S.songs[plId]||[];
-    for(const s of songs){
-      batch.update(db.collection('playlists').doc(plId).collection('songs').doc(s.id),{visible:vis});n++;
-      s.visible=vis;
-      const a=S.allSongs.find(x=>x.id===s.id&&x.playlistId===plId);if(a)a.visible=vis;
-      if(n>=450)await flush();
-    }
-  }
-  await flush();
-}
-async function soloPlaylist(id){
-  const target=S.playlists.find(p=>p.id===id);
-  if(!target)return;
-  if(!confirm('Deixar só "'+target.name+'" visível pro público e ocultar TODAS as outras playlists?\n\nDepois, use "👁 Mostrar todas" pra voltar ao normal.'))return;
-  try{
-    await bulkSetPlaylistVisibility(S.playlists.map(pl=>({plId:pl.id,vis:pl.id===id})));
-    toast('Modo solo: só "'+target.name+'" visível! 🎸');
-    renderAdmin();
-  }catch(e){toast('Erro ao ativar modo solo.');}
-}
-async function showAllPlaylists(){
-  if(!confirm('Mostrar todas as playlists de novo pro público?'))return;
-  try{
-    await bulkSetPlaylistVisibility(S.playlists.map(pl=>({plId:pl.id,vis:true})));
-    toast('Todas as playlists visíveis de novo! 🎶');
-    renderAdmin();
-  }catch(e){toast('Erro.');}
-}
 async function toggleSong(plId,sId,cur){
   try{await db.collection('playlists').doc(plId).collection('songs').doc(sId).update({visible:!cur});
   const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(s)s.visible=!cur;
