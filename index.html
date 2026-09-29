@@ -117,7 +117,9 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .event-banner-cta{order:-1;display:inline-block;margin-bottom:10px;background:#083d26;color:var(--white);font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;letter-spacing:0.5px;align-self:center;cursor:pointer}
 .apoie-card{margin:0 20px 14px;background:linear-gradient(135deg,#1a0000,#2a0808);border:1px solid rgba(192,57,43,.35);border-radius:var(--radius);padding:18px 20px;text-align:center}
 .banner-img{margin:0 20px 14px;cursor:pointer;border-radius:var(--radius);overflow:hidden;transition:transform .2s}
-.banner-img:active{transform:scale(0.98)}
+.banner-img,.apoie-card-img{border:1.5px solid rgba(231,76,60,.75);box-shadow:0 4px 0 #7a1c14,0 8px 14px rgba(0,0,0,.65);margin-bottom:18px}
+.banner-img{transition:transform .12s,box-shadow .12s}
+.banner-img:active{transform:translateY(3px);box-shadow:0 1px 0 #7a1c14,0 3px 6px rgba(0,0,0,.6)}
 .banner-img img{display:block;width:100%}
 .apoie-card.apoie-card-img{padding:0;overflow:hidden;background:#000}
 .apoie-card-img img{display:block;width:100%}
@@ -744,8 +746,6 @@ function renderHome(){
       </div>
       ${(playlists.length===0&&playlistsLoaded)?'<div class="empty-state"><div class="empty-icon">🎸</div><p>O repertório está sendo preparado!</p></div>':''}
     </div>
-    <div class="banner-img" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')"><img src="evento-whats.jpg" alt="Sujeito Rock no Seu Evento — fale pelo WhatsApp" loading="lazy"></div>
-    <div class="banner-img" onclick="window.open('https://instagram.com/sujeitorock','_blank')"><img src="marca-sujeito.jpg" alt="Marca o Sujeito no Instagram" loading="lazy"></div>
     <div class="apoie-card apoie-card-img">
       <img src="apoie-artista.jpg" alt="Apoie o Artista" loading="lazy">
       <div class="apoie-btns">
@@ -754,6 +754,8 @@ function renderHome(){
         ${S.config.kofiLink?`<a class="apoie-btn" href="${S.config.kofiLink}" target="_blank">☕ Ko-fi</a>`:''}
       </div>
     </div>
+    <div class="banner-img" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')"><img src="evento-whats.jpg" alt="Sujeito Rock no Seu Evento — fale pelo WhatsApp" loading="lazy"></div>
+    <div class="banner-img" onclick="window.open('https://instagram.com/sujeitorock','_blank')"><img src="marca-sujeito.jpg" alt="Marca o Sujeito no Instagram" loading="lazy"></div>
     <div class="home-footer">
       <div class="banner-img" onclick="goTo('shows')"><img src="proximos-shows.jpg" alt="Próximos Shows" loading="lazy"></div>
       <div class="social-links" style="display:none">
