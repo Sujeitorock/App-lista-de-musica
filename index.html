@@ -117,13 +117,23 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .event-banner-cta{order:-1;display:inline-block;margin-bottom:10px;background:#083d26;color:var(--white);font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;letter-spacing:0.5px;align-self:center;cursor:pointer}
 .apoie-card{margin:0 20px 14px;background:linear-gradient(135deg,#1a0000,#2a0808);border:1px solid rgba(192,57,43,.35);border-radius:var(--radius);padding:18px 20px;text-align:center}
 .banner-img{margin:0 20px 14px;cursor:pointer;border-radius:var(--radius);overflow:hidden;transition:transform .2s}
-.banner-img,.apoie-card-img{border:1.5px solid rgba(231,76,60,.75);box-shadow:0 4px 0 #7a1c14,0 8px 14px rgba(0,0,0,.65);margin-bottom:18px}
+.banner-img,.apoie-card-img{position:relative;background:#0b0b0b;padding:7px;border:2px solid #e02b1f;box-shadow:0 0 0 1px rgba(0,0,0,.8),0 0 14px rgba(224,43,31,.55),0 5px 0 #7a1c14,0 10px 16px rgba(0,0,0,.65);margin-bottom:20px}
 .banner-img{transition:transform .12s,box-shadow .12s}
-.banner-img:active{transform:translateY(3px);box-shadow:0 1px 0 #7a1c14,0 3px 6px rgba(0,0,0,.6)}
+.banner-img:active{transform:translateY(3px);box-shadow:0 0 0 1px rgba(0,0,0,.8),0 0 10px rgba(224,43,31,.5),0 2px 0 #7a1c14,0 4px 8px rgba(0,0,0,.6)}
+.banner-img img,.apoie-img-wrap img{border-radius:calc(var(--radius) - 4px);border:1px solid rgba(224,43,31,.45)}
+.apoie-img-wrap{position:relative;cursor:pointer}
+.go-arrow{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;border:2px solid #e02b1f;background:rgba(0,0,0,.55);box-shadow:0 0 10px rgba(224,43,31,.7);display:flex;align-items:center;justify-content:center;pointer-events:none}
+.go-arrow::before{content:'';width:9px;height:9px;border-right:3px solid #fff;border-bottom:3px solid #fff;transform:rotate(-45deg);margin-right:3px}
+.go-arrow.down::before{transform:rotate(45deg);margin:-3px 0 0 0;transition:transform .25s}
+.apoie-card-img.open .go-arrow.down::before{transform:rotate(225deg);margin:3px 0 0 0}
+.apoie-btn-arrow{width:8px;height:8px;border-right:2.5px solid #e02b1f;border-bottom:2.5px solid #e02b1f;transform:rotate(-45deg);margin-left:6px}
+.apoie-pix-panel{display:none;text-align:center;padding:14px 8px 4px}
+.apoie-card-img.open .apoie-pix-panel{display:block}
 .banner-img img{display:block;width:100%}
-.apoie-card.apoie-card-img{padding:0;overflow:hidden;background:#000}
+.apoie-card.apoie-card-img{overflow:hidden;background:#0b0b0b;padding:7px}
 .apoie-card-img img{display:block;width:100%}
-.apoie-card-img .apoie-btns{padding:0 16px 16px}
+.apoie-card-img .apoie-btns{padding:10px 0 4px;flex-wrap:nowrap;gap:8px}
+.apoie-card-img .apoie-btn{min-width:0;padding:10px 8px;border-color:rgba(224,43,31,.6);box-shadow:0 2px 0 #7a1c14}
 .apoie-card-title{font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;color:var(--white);margin-bottom:4px}
 .apoie-card-sub{font-size:13px;color:var(--gray2);margin-bottom:14px}
 .apoie-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
@@ -746,18 +756,24 @@ function renderHome(){
       </div>
       ${(playlists.length===0&&playlistsLoaded)?'<div class="empty-state"><div class="empty-icon">🎸</div><p>O repertório está sendo preparado!</p></div>':''}
     </div>
-    <div class="apoie-card apoie-card-img">
-      <img src="apoie-artista.jpg" alt="Apoie o Artista" loading="lazy">
+    <div class="apoie-card apoie-card-img" id="apoie-card">
+      <div class="apoie-img-wrap" onclick="toggleApoiePix()"><img src="apoie-artista.jpg" alt="Apoie o Artista" loading="lazy"><span class="go-arrow down"></span></div>
       <div class="apoie-btns">
-        <a class="apoie-btn" onclick="copyPix()" style="cursor:pointer">💚 Pix</a>
-        ${S.config.paypalLink?`<a class="apoie-btn" href="${S.config.paypalLink}" target="_blank">💳 PayPal</a>`:''}
-        ${S.config.kofiLink?`<a class="apoie-btn" href="${S.config.kofiLink}" target="_blank">☕ Ko-fi</a>`:''}
+        <a class="apoie-btn" onclick="copyPix()" style="cursor:pointer">💚 Pix<i class="apoie-btn-arrow"></i></a>
+        ${S.config.paypalLink?`<a class="apoie-btn" href="${S.config.paypalLink}" target="_blank">💳 PayPal<i class="apoie-btn-arrow"></i></a>`:''}
+        ${S.config.kofiLink?`<a class="apoie-btn" href="${S.config.kofiLink}" target="_blank">☕ Ko-fi<i class="apoie-btn-arrow"></i></a>`:''}
+      </div>
+      <div class="apoie-pix-panel">
+        <div id="pix-qr-container" style="display:inline-block;margin-bottom:12px"></div>
+        <div style="font-size:12px;color:var(--gray2);margin-bottom:4px">Chave Pix:</div>
+        <div style="font-size:13px;color:#fff;word-break:break-all;margin-bottom:10px;font-weight:600">${S.config.pixKey}</div>
+        <button class="copy-btn" style="width:100%;padding:10px" onclick="copyPix()">📋 Copiar chave Pix</button>
       </div>
     </div>
-    <div class="banner-img" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')"><img src="evento-whats.jpg" alt="Sujeito Rock no Seu Evento — fale pelo WhatsApp" loading="lazy"></div>
+    <div class="banner-img" onclick="window.open('https://wa.me/5511987017703?text=Olá! Quero levar o Sujeito Rock para meu evento!','_blank')"><img src="evento-whats.jpg" alt="Sujeito Rock no Seu Evento — fale pelo WhatsApp" loading="lazy"><span class="go-arrow"></span></div>
     <div class="banner-img" onclick="window.open('https://instagram.com/sujeitorock','_blank')"><img src="marca-sujeito.jpg" alt="Marca o Sujeito no Instagram" loading="lazy"></div>
     <div class="home-footer">
-      <div class="banner-img" onclick="goTo('shows')"><img src="proximos-shows.jpg" alt="Próximos Shows" loading="lazy"></div>
+      <div class="banner-img" onclick="goTo('shows')"><img src="proximos-shows.jpg" alt="Próximos Shows" loading="lazy"><span class="go-arrow"></span></div>
       <div class="social-links" style="display:none">
         <a href="https://instagram.com/sujeitorock" class="social-btn" target="_blank">
           <div style="font-size:13px;flex:1;line-height:1.4">Tá curtindo? Fez foto ou vídeo? <strong>Marca o Sujeito</strong></div>
@@ -945,6 +961,11 @@ function tryWallet(scheme,key){
   setTimeout(()=>{if(Date.now()-start<2000)toast('App não encontrado. Use a chave Pix copiada!');},1500);
 }
 
+function toggleApoiePix(){
+  const c=document.getElementById('apoie-card');if(!c)return;
+  const open=c.classList.toggle('open');
+  if(open)renderPixQR();
+}
 function copyPix(){
   navigator.clipboard.writeText(S.config.pixKey).then(()=>toast('Chave Pix copiada! 📋')).catch(()=>{const el=document.createElement('textarea');el.value=S.config.pixKey;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);toast('Chave Pix copiada! 📋');});
 }
