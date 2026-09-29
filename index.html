@@ -42,7 +42,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .header-inner{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
 .header-photo{width:72px;height:72px;border-radius:50%;border:2px solid var(--red);object-fit:cover;object-position:center top;flex-shrink:0;box-shadow:0 0 0 4px var(--red-light)}
 .header-right{flex:0 1 auto;min-width:0}
-.logo-img{width:100%;max-width:200px;display:block;mix-blend-mode:screen}
+.logo-img{width:100%;max-width:200px;height:auto;object-fit:contain;display:block}
 .header-tagline{font-size:12px;color:var(--gray2);margin-top:4px;letter-spacing:0.5px}
 
 /* MULTI SELECT */
@@ -737,7 +737,7 @@ function renderHome(){
       <div class="header-inner">
         <img src="${FOTO_DATA}" alt="Sujeito Rock" class="header-photo">
         <div class="header-right">
-          <img src="logo.jpg" alt="SujeitoRock" class="logo-img" style="mix-blend-mode:screen">
+          <img src="logo-oficial.png" alt="SujeitoRock" class="logo-img">
           <div class="header-tagline">Peça agora sua música 🎸</div>
         </div>
       </div>
