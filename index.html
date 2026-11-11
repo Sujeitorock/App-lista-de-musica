@@ -438,6 +438,20 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .share-skip{background:none;border:none;color:var(--gray2);font-family:'Barlow',sans-serif;font-size:13px;margin-top:14px;padding:6px;cursor:pointer;text-decoration:underline}
 @keyframes shareUp{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 @keyframes shareFade{from{opacity:0}to{opacity:1}}
+/* ── Grupos por artista na playlist ── */
+.artist-grp{margin-bottom:8px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.artist-grp.open{border-color:rgba(224,43,31,.55)}
+.artist-grp-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:var(--tr)}
+.artist-grp-hdr:active{background:#1a0808}
+.artist-grp-name{flex:1;font-weight:700;font-size:16px}
+.artist-grp-count{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gray2)}
+.artist-grp-sel{font-size:12px;font-weight:700;color:var(--red2)}
+.artist-grp-arrow{width:8px;height:8px;border-right:2.5px solid #e02b1f;border-bottom:2.5px solid #e02b1f;transform:rotate(45deg);margin:-3px 4px 0 2px;transition:transform .2s}
+.artist-grp.open .artist-grp-arrow{transform:rotate(225deg);margin-top:3px}
+.artist-grp-songs{display:none;padding:0 8px 8px;border-top:1px solid var(--border)}
+.artist-grp.open .artist-grp-songs{display:block;padding-top:8px}
+.artist-grp-songs .song-item{margin-bottom:6px;background:var(--bg2);padding:12px 14px}
+.artist-grp-songs .song-item:last-child{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -513,7 +527,7 @@ const S={
   searchQuery:'',searchResults:[],suggestTitle:'',suggestArtist:'',
   selectedSongs:[],selectionMode:false,_movingSong:null,
   isAdmin:false,adminTab:'requests',adminSongsPl:null,adminBulkSel:[],adminBulkMoving:false,
-  _plSearch:'',_prevReqCount:0,_prevWishCount:0,_notifPerm:false,
+  _plSearch:'',_openArtists:{},_prevReqCount:0,_prevWishCount:0,_notifPerm:false,
   reqListener:null,wishListener:null,
   lastReqIds:[],adminReaction:null,_reactionListener:null,showsData:[],showsLoaded:false,showsError:null,_showsFetching:false
 };
@@ -884,29 +898,51 @@ function renderSearchResults(){
   return`<div class="search-results">${html}</div>`;
 }
 
+// ═══ LISTA DA PLAYLIST AGRUPADA POR ARTISTA ═══
+// Cada artista com 2+ músicas vira um grupo que abre/fecha; artista com 1 música aparece direto.
+function _artistKey(a){return (a||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'')||'outros';}
+function toggleArtist(key){
+  S._openArtists[key]=!S._openArtists[key];
+  const el=document.querySelector('.artist-grp[data-akey="'+key+'"]');
+  if(el)el.classList.toggle('open');
+}
+function songsListHTML(songs,q){
+  const selMode=S.selectionMode;
+  const selIds=new Set(S.selectedSongs.map(x=>x.id));
+  const groups={};
+  songs.forEach(s=>{const k=_artistKey(s.artist);(groups[k]=groups[k]||{name:s.artist||'Outros',songs:[]}).songs.push(s);});
+  const cmp=(x,y)=>(x||'').localeCompare(y||'','pt-BR',{sensitivity:'base'});
+  function row(s,showArtist){
+    const sel=selIds.has(s.id);
+    const info='<div class="song-info"><div class="song-title">'+s.title+'</div>'+(showArtist?'<div class="song-artist">'+s.artist+'</div>':'')+'</div>';
+    if(selMode)return'<div class="song-item '+(sel?'song-selected':'')+'" onclick="toggleSongSel(\''+s.playlistId+'\',\''+s.id+'\')"><div class="song-check">'+(sel?'✓':'')+'</div>'+info+'</div>';
+    return'<div class="song-item" onclick="selectSong(\''+s.playlistId+'\',\''+s.id+'\')">'+info+'<span class="song-arrow">›</span></div>';
+  }
+  return Object.entries(groups).sort((a,b)=>cmp(a[1].name,b[1].name)).map(([k,g])=>{
+    g.songs.sort((x,y)=>cmp(x.title,y.title));
+    if(g.songs.length===1)return row(g.songs[0],true);
+    const open=!!q||!!S._openArtists[k];
+    const nSel=g.songs.filter(x=>selIds.has(x.id)).length;
+    return'<div class="artist-grp'+(open?' open':'')+'" data-akey="'+k+'">'
+      +'<div class="artist-grp-hdr" onclick="toggleArtist(\''+k+'\')"><span class="artist-grp-name">'+g.name+'</span>'
+      +(nSel?'<span class="artist-grp-sel">'+nSel+' ✓</span>':'')
+      +'<span class="artist-grp-count">'+g.songs.length+'</span><i class="artist-grp-arrow"></i></div>'
+      +'<div class="artist-grp-songs">'+g.songs.map(x=>row(x,false)).join('')+'</div></div>';
+  }).join('');
+}
+
 function renderPlaylist(){
   const pl=S.currentPlaylist;if(!pl)return'';
   const songs=(S.songs[pl.id]||[]).filter(s=>s.visible!==false);
   const q=S._plSearch||'';
   const filtered=q?songs.filter(s=>s.title?.toLowerCase().includes(q)||s.artist?.toLowerCase().includes(q)):songs;
   const selMode=S.selectionMode;
-  const selIds=new Set(S.selectedSongs.map(x=>x.id));
-  function songRow(s,i){
-    const sel=selIds.has(s.id);
-    if(selMode){
-      return`<div class="song-item ${sel?'song-selected':''}" onclick="toggleSongSel('${s.playlistId}','${s.id}')">
-        <div class="song-check">${sel?'✓':''}</div>
-        <div class="song-info"><div class="song-title">${s.title}</div><div class="song-artist">${s.artist}</div></div>
-      </div>`;
-    }
-    return`<div class="song-item" onclick="selectSong('${s.playlistId}','${s.id}')"><div class="song-num">${i+1}</div><div class="song-info"><div class="song-title">${s.title}</div><div class="song-artist">${s.artist}</div></div><span class="song-arrow">›</span></div>`;
-  }
   return`<div class="screen fade-in">
     <div class="screen-header"><button class="back-btn" onclick="goHome()">←</button><div class="screen-header-info"><div class="screen-header-title">${pl.emoji||'🎵'} ${pl.name}</div><div class="screen-header-sub">${songs.length} músicas no repertório</div></div><button class="select-toggle ${selMode?'active':''}" onclick="toggleSelMode()">${selMode?'Cancelar':'Selecionar'}</button></div>
     <div class="playlist-search"><input type="text" id="pl-search" placeholder="Filtrar músicas..." oninput="filterPl(this.value)" autocomplete="off" value="${q}"></div>
     <div class="songs-list" style="${selMode?'padding-bottom:80px':''}">
       ${filtered.length===0?'<div class="empty-state"><p>Nenhuma música encontrada.</p></div>':''}
-      ${filtered.map((s,i)=>songRow(s,i)).join('')}
+      ${songsListHTML(filtered,q)}
     </div>
     ${!selMode?`<button class="suggest-btn" onclick="goTo('suggest',{currentPlaylist:S.currentPlaylist})">➕ Não achou a sua? Sugira uma música</button>`:''}
     ${selMode&&S.selectedSongs.length>0?`<div class="select-bar"><div class="select-bar-info"><span>${S.selectedSongs.length}</span> música${S.selectedSongs.length>1?'s':''} selecionada${S.selectedSongs.length>1?'s':''}</div><button class="btn-request-all" onclick="requestSelectedSongs()">🎸 PEDIR TODAS</button></div>`:''}
@@ -918,14 +954,9 @@ function filterPl(q){
   const sl=document.querySelector('.songs-list');if(!sl)return;
   const pl=S.currentPlaylist;
   const songs=(S.songs[pl.id]||[]).filter(s=>s.visible!==false);
+  q=S._plSearch;
   const filtered=q?songs.filter(s=>s.title?.toLowerCase().includes(q)||s.artist?.toLowerCase().includes(q)):songs;
-  const selMode=S.selectionMode;
-  const selIds=new Set(S.selectedSongs.map(x=>x.id));
-  sl.innerHTML=(filtered.length===0?'<div class="empty-state"><p>Nenhuma música encontrada.</p></div>':'')+filtered.map((s,i)=>{
-    const sel=selIds.has(s.id);
-    if(selMode)return`<div class="song-item ${sel?'song-selected':''}" onclick="toggleSongSel('${s.playlistId}','${s.id}')"><div class="song-check">${sel?'✓':''}</div><div class="song-info"><div class="song-title">${s.title}</div><div class="song-artist">${s.artist}</div></div></div>`;
-    return`<div class="song-item" onclick="selectSong('${s.playlistId}','${s.id}')"><div class="song-num">${i+1}</div><div class="song-info"><div class="song-title">${s.title}</div><div class="song-artist">${s.artist}</div></div><span class="song-arrow">›</span></div>`;
-  }).join('');
+  sl.innerHTML=(filtered.length===0?'<div class="empty-state"><p>Nenhuma música encontrada.</p></div>':'')+songsListHTML(filtered,q);
 }
 
 function renderStep1(){
@@ -1431,8 +1462,8 @@ function renderAdminConfig(){
   <button class="save-cfg-btn" onclick="saveConfig()">💾 SALVAR CONFIGURAÇÕES</button>`;
 }
 // ═══ ACTIONS ═══
-function openPlaylist(plId){const pl=S.playlists.find(p=>p.id===plId);if(!pl)return;S._plSearch='';S.selectionMode=false;S.selectedSongs=[];goTo('playlist',{currentPlaylist:pl});}
-function openRecent(){const t=Date.now()-30*24*60*60*1000;const r=S.allSongs.filter(s=>s.visible!==false&&s.addedAt?.toMillis()>t);S.currentPlaylist={id:'__recent__',name:'Recém Adicionadas',emoji:'⚡'};S.songs['__recent__']=r;S._plSearch='';S.selectionMode=false;S.selectedSongs=[];S.screen='playlist';render();}
+function openPlaylist(plId){const pl=S.playlists.find(p=>p.id===plId);if(!pl)return;S._plSearch='';S._openArtists={};S.selectionMode=false;S.selectedSongs=[];goTo('playlist',{currentPlaylist:pl});}
+function openRecent(){const t=Date.now()-30*24*60*60*1000;const r=S.allSongs.filter(s=>s.visible!==false&&s.addedAt?.toMillis()>t);S.currentPlaylist={id:'__recent__',name:'Recém Adicionadas',emoji:'⚡'};S.songs['__recent__']=r;S._plSearch='';S._openArtists={};S.selectionMode=false;S.selectedSongs=[];S.screen='playlist';render();}
 function selectSong(plId,sId){const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(!s)return;S.selectedSongs=[];S.currentSong=s;S.requesterName='';S.message='';S.pixAmount=0;S.hasPix=false;S.showPixKey=false;S.pixCustom='';goTo('step1');}
 // ═══ MULTI SELECT ═══
 function toggleSelMode(){S.selectionMode=!S.selectionMode;if(!S.selectionMode)S.selectedSongs=[];render();}
