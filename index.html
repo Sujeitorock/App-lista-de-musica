@@ -419,6 +419,25 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .custom-rx-row{display:flex;gap:6px;margin-top:8px}
 .custom-rx-input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:13px;font-family:'Barlow',sans-serif;outline:none}
 .custom-rx-input::placeholder{color:var(--gray)}
+/* ── Compartilhar com a mesa ── */
+.share-card{margin:0 20px 16px;display:flex;align-items:center;gap:12px;background:#0b0b0b;border:2px solid #e02b1f;border-radius:var(--radius);padding:12px 14px;box-shadow:0 0 14px rgba(224,43,31,.45),0 4px 0 #7a1c14}
+.share-card-text{flex:1;display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--gray2);line-height:1.3}
+.share-card-text strong{color:var(--white);font-size:14px}
+.share-card-btn{flex-shrink:0;background:var(--red);border:none;border-radius:10px;padding:10px 12px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 0 #7a1c14}
+.share-card-btn:active{transform:translateY(2px);box-shadow:none}
+.share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10001;display:flex;align-items:flex-end;justify-content:center;animation:shareFade .2s}
+.share-sheet{width:100%;max-width:480px;background:var(--bg2);border:2px solid #e02b1f;border-bottom:none;border-radius:20px 20px 0 0;padding:22px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;box-shadow:0 -4px 28px rgba(224,43,31,.4);animation:shareUp .25s ease-out}
+.share-sheet-emoji{font-size:34px;margin-bottom:4px}
+.share-sheet-title{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;color:var(--white)}
+.share-sheet-sub{font-size:14px;color:var(--gray2);line-height:1.45;margin:6px 0 16px}
+.share-opt{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg3);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:13px 8px;color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;flex:1}
+.share-opt-main{width:100%;background:var(--red);border-color:var(--red);font-size:16px;margin-bottom:10px;box-shadow:0 3px 0 #7a1c14}
+.share-opt-row{display:flex;gap:8px}
+.share-wa{background:#128c4a;border-color:#128c4a}
+.share-tg{background:#2a8fcf;border-color:#2a8fcf}
+.share-skip{background:none;border:none;color:var(--gray2);font-family:'Barlow',sans-serif;font-size:13px;margin-top:14px;padding:6px;cursor:pointer;text-decoration:underline}
+@keyframes shareUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes shareFade{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -646,6 +665,56 @@ function renderPixQR(){
   img.onerror=()=>{container.innerHTML='';};
   img.src=url;
 }
+// ═══ COMPARTILHAR O APP COM A MESA ═══
+const SHARE_URL='https://app.sujeitorock.com.br/';
+const SHARE_TEXT='🎸 Peça sua música no Sujeito Rock! Entra aqui, escolhe a sua e manda pro palco:';
+function _shareMsg(){return SHARE_TEXT+' '+SHARE_URL;}
+function _closeSharePrompt(){const el=document.getElementById('share-overlay');if(el)el.remove();}
+function _markSharePromptSeen(){try{sessionStorage.setItem('sharePromptSeen','1');}catch(e){}}
+// Abre a folha nativa do celular (WhatsApp, Telegram, Instagram, SMS... tudo que a pessoa tiver instalado).
+// Se o aparelho/WebView não suportar, abre o painel com WhatsApp, Telegram e copiar link.
+async function shareApp(){
+  if(navigator.share){
+    try{await navigator.share({title:'Sujeito Rock — Peça sua música',text:SHARE_TEXT,url:SHARE_URL});_closeSharePrompt();return;}
+    catch(e){if(e&&e.name==='AbortError')return;}
+  }
+  openSharePrompt(true);
+}
+function shareVia(app){
+  const t=encodeURIComponent(_shareMsg());
+  const url=app==='telegram'?'https://t.me/share/url?url='+encodeURIComponent(SHARE_URL)+'&text='+encodeURIComponent(SHARE_TEXT):'https://wa.me/?text='+t;
+  window.open(url,'_blank');
+}
+function copyShareLink(){
+  const done=()=>toast('Link copiado! Cola no grupo da mesa 📋');
+  const fallback=()=>{const el=document.createElement('textarea');el.value=SHARE_URL;document.body.appendChild(el);el.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(el);done();};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(SHARE_URL).then(done).catch(fallback);else fallback();
+}
+function openSharePrompt(manual){
+  if(document.getElementById('share-overlay'))return;
+  _markSharePromptSeen();
+  const div=document.createElement('div');div.id='share-overlay';div.className='share-overlay';
+  div.onclick=e=>{if(e.target===div)_closeSharePrompt();};
+  div.innerHTML='<div class="share-sheet">'
+    +'<div class="share-sheet-emoji">🤘</div>'
+    +'<div class="share-sheet-title">'+(manual?'Mande pra galera':'Antes de pedir sua música...')+'</div>'
+    +'<p class="share-sheet-sub">Compartilhe o app com os amigos da mesa. Cada um recebe o link no próprio celular e já pede a sua, sem ninguém precisar escanear o QR Code de novo!</p>'
+    +(navigator.share?'<button class="share-opt share-opt-main" onclick="shareApp()">📲 Compartilhar com a mesa</button>':'')
+    +'<div class="share-opt-row">'
+    +'<button class="share-opt share-wa" onclick="shareVia(\'whatsapp\')">WhatsApp</button>'
+    +'<button class="share-opt share-tg" onclick="shareVia(\'telegram\')">Telegram</button>'
+    +'<button class="share-opt" onclick="copyShareLink()">📋 Copiar link</button>'
+    +'</div>'
+    +'<button class="share-skip" onclick="_closeSharePrompt()">'+(manual?'Fechar':'Agora não, quero pedir minha música')+'</button>'
+    +'</div>';
+  document.body.appendChild(div);
+}
+// Aparece uma vez por visita (cada vez que a pessoa escaneia o QR e abre o app numa aba nova)
+function maybeShowSharePrompt(){
+  let seen=false;try{seen=sessionStorage.getItem('sharePromptSeen')==='1';}catch(e){}
+  if(seen||location.hash==='#admin')return;
+  setTimeout(()=>{if(S.screen==='home'&&!S.isAdmin)openSharePrompt(false);},600);
+}
 // ═══ TOAST ═══
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
@@ -741,6 +810,10 @@ function renderHome(){
           <div class="header-tagline">Peça agora sua música 🎸</div>
         </div>
       </div>
+    </div>
+    <div class="share-card">
+      <div class="share-card-text"><strong>👥 Tá com a galera?</strong><span>Mande o app pra mesa e todo mundo pede junto!</span></div>
+      <button class="share-card-btn" onclick="shareApp()">📲 Compartilhar</button>
     </div>
     <div class="search-bar">
       <span class="search-icon">🔍</span>
@@ -994,6 +1067,7 @@ function renderConfirm(){
     <p class="confirm-sub"><strong>${S.requesterName}</strong>, opa, recebemos seu pedido aqui. Valeu de mais ein! 🤘</p>
     <div class="confirm-insta">📸 Marque @sujeitorock no seu story!</div>
     <button class="btn-primary" onclick="goHome()" style="max-width:280px">🎵 PEDIR OUTRA MÚSICA</button>
+    <button class="btn-secondary" onclick="shareApp()" style="max-width:280px">👥 Chamar a galera da mesa</button>
     <button class="btn-secondary" onclick="window.open('https://www.instagram.com/sujeitorock','_blank')" style="max-width:280px">Abrir Instagram</button>
   </div>`;
 }
@@ -1829,7 +1903,7 @@ auth.onAuthStateChanged(user=>{
     // Se não está indo para admin — usuário está na área pública, não ativa nada
   }
 });
-async function init(){history.replaceState({screen:'home'},'home','');await loadConfig();render();loadPlaylists();if(window.location.hash==='#admin')goTo('admin-login');}
+async function init(){history.replaceState({screen:'home'},'home','');await loadConfig();render();loadPlaylists();maybeShowSharePrompt();if(window.location.hash==='#admin')goTo('admin-login');}
 // Keepalive: ping leve a cada 25s para manter Firebase vivo em standby
 setInterval(()=>{if(S.isAdmin){try{db.collection('_keep').doc('alive').set({t:Date.now()}).catch(()=>{});}catch(e){}}},25000);
 init();
