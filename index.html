@@ -425,8 +425,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .share-card-text strong{color:var(--white);font-size:14px}
 .share-card-btn{flex-shrink:0;background:var(--red);border:none;border-radius:10px;padding:10px 12px;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 0 #7a1c14}
 .share-card-btn:active{transform:translateY(2px);box-shadow:none}
-.share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10001;display:flex;align-items:flex-end;justify-content:center;animation:shareFade .2s}
-.share-sheet{width:100%;max-width:480px;background:var(--bg2);border:2px solid #e02b1f;border-bottom:none;border-radius:20px 20px 0 0;padding:22px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;box-shadow:0 -4px 28px rgba(224,43,31,.4);animation:shareUp .25s ease-out}
+.share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;animation:shareFade .2s}
+.share-sheet{width:100%;max-width:420px;max-height:100%;overflow-y:auto;background:var(--bg2);border:2px solid #e02b1f;border-radius:20px;padding:22px 20px 18px;text-align:center;box-shadow:0 0 28px rgba(224,43,31,.45);animation:shareUp .25s ease-out}
 .share-sheet-emoji{font-size:34px;margin-bottom:4px}
 .share-sheet-title{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;color:var(--white)}
 .share-sheet-sub{font-size:14px;color:var(--gray2);line-height:1.45;margin:6px 0 16px}
@@ -436,7 +436,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .share-wa{background:#128c4a;border-color:#128c4a}
 .share-tg{background:#2a8fcf;border-color:#2a8fcf}
 .share-skip{background:none;border:none;color:var(--gray2);font-family:'Barlow',sans-serif;font-size:13px;margin-top:14px;padding:6px;cursor:pointer;text-decoration:underline}
-@keyframes shareUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes shareUp{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 @keyframes shareFade{from{opacity:0}to{opacity:1}}
 </style>
 </head>
