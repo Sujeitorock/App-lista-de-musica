@@ -452,6 +452,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .artist-grp.open .artist-grp-songs{display:block;padding-top:8px}
 .artist-grp-songs .song-item{margin-bottom:6px;background:var(--bg2);padding:12px 14px}
 .artist-grp-songs .song-item:last-child{margin-bottom:0}
+.song-check-hit{padding:10px 8px 10px 0;margin:-10px 0 -10px -4px;cursor:pointer}
+.artist-grp-hint{font-size:12px;color:var(--gray2);padding:2px 6px 8px}
 </style>
 </head>
 <body>
@@ -900,6 +902,7 @@ function renderSearchResults(){
 
 // ═══ LISTA DA PLAYLIST AGRUPADA POR ARTISTA ═══
 // Cada artista com 2+ músicas vira um grupo que abre/fecha; artista com 1 música aparece direto.
+const MAX_POR_ARTISTA=2; // máximo de músicas da mesma banda por pedido
 function _artistKey(a){return (a||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'')||'outros';}
 function toggleArtist(key){
   S._openArtists[key]=!S._openArtists[key];
@@ -912,22 +915,26 @@ function songsListHTML(songs,q){
   const groups={};
   songs.forEach(s=>{const k=_artistKey(s.artist);(groups[k]=groups[k]||{name:s.artist||'Outros',songs:[]}).songs.push(s);});
   const cmp=(x,y)=>(x||'').localeCompare(y||'','pt-BR',{sensitivity:'base'});
-  function row(s,showArtist){
+  // Com alguma música marcada (ou no modo Selecionar), tocar na linha marca/desmarca em vez de pedir na hora
+  const picking=selMode||S.selectedSongs.length>0;
+  function row(s,showArtist,inGroup){
     const sel=selIds.has(s.id);
     const info='<div class="song-info"><div class="song-title">'+s.title+'</div>'+(showArtist?'<div class="song-artist">'+s.artist+'</div>':'')+'</div>';
-    if(selMode)return'<div class="song-item '+(sel?'song-selected':'')+'" onclick="toggleSongSel(\''+s.playlistId+'\',\''+s.id+'\')"><div class="song-check">'+(sel?'✓':'')+'</div>'+info+'</div>';
-    return'<div class="song-item" onclick="selectSong(\''+s.playlistId+'\',\''+s.id+'\')">'+info+'<span class="song-arrow">›</span></div>';
+    const args='\''+s.playlistId+'\',\''+s.id+'\'';
+    const check='<div class="song-check-hit" onclick="event.stopPropagation();toggleSongSel('+args+')"><div class="song-check">'+(sel?'✓':'')+'</div></div>';
+    const showCheck=picking||inGroup;
+    return'<div class="song-item '+(sel?'song-selected':'')+'" onclick="'+(picking?'toggleSongSel':'selectSong')+'('+args+')">'+(showCheck?check:'')+info+(picking?'':'<span class="song-arrow">›</span>')+'</div>';
   }
   return Object.entries(groups).sort((a,b)=>cmp(a[1].name,b[1].name)).map(([k,g])=>{
     g.songs.sort((x,y)=>cmp(x.title,y.title));
-    if(g.songs.length===1)return row(g.songs[0],true);
+    if(g.songs.length===1)return row(g.songs[0],true,false);
     const open=!!q||!!S._openArtists[k];
     const nSel=g.songs.filter(x=>selIds.has(x.id)).length;
     return'<div class="artist-grp'+(open?' open':'')+'" data-akey="'+k+'">'
       +'<div class="artist-grp-hdr" onclick="toggleArtist(\''+k+'\')"><span class="artist-grp-name">'+g.name+'</span>'
       +(nSel?'<span class="artist-grp-sel">'+nSel+' ✓</span>':'')
       +'<span class="artist-grp-count">'+g.songs.length+'</span><i class="artist-grp-arrow"></i></div>'
-      +'<div class="artist-grp-songs">'+g.songs.map(x=>row(x,false)).join('')+'</div></div>';
+      +'<div class="artist-grp-songs">'+'<div class="artist-grp-hint">☑️ Marque até '+MAX_POR_ARTISTA+' músicas e peça juntas</div>'+g.songs.map(x=>row(x,false,true)).join('')+'</div></div>';
   }).join('');
 }
 
@@ -940,12 +947,12 @@ function renderPlaylist(){
   return`<div class="screen fade-in">
     <div class="screen-header"><button class="back-btn" onclick="goHome()">←</button><div class="screen-header-info"><div class="screen-header-title">${pl.emoji||'🎵'} ${pl.name}</div><div class="screen-header-sub">${songs.length} músicas no repertório</div></div><button class="select-toggle ${selMode?'active':''}" onclick="toggleSelMode()">${selMode?'Cancelar':'Selecionar'}</button></div>
     <div class="playlist-search"><input type="text" id="pl-search" placeholder="Filtrar músicas..." oninput="filterPl(this.value)" autocomplete="off" value="${q}"></div>
-    <div class="songs-list" style="${selMode?'padding-bottom:80px':''}">
+    <div class="songs-list" style="${(selMode||S.selectedSongs.length)?'padding-bottom:80px':''}">
       ${filtered.length===0?'<div class="empty-state"><p>Nenhuma música encontrada.</p></div>':''}
       ${songsListHTML(filtered,q)}
     </div>
-    ${!selMode?`<button class="suggest-btn" onclick="goTo('suggest',{currentPlaylist:S.currentPlaylist})">➕ Não achou a sua? Sugira uma música</button>`:''}
-    ${selMode&&S.selectedSongs.length>0?`<div class="select-bar"><div class="select-bar-info"><span>${S.selectedSongs.length}</span> música${S.selectedSongs.length>1?'s':''} selecionada${S.selectedSongs.length>1?'s':''}</div><button class="btn-request-all" onclick="requestSelectedSongs()">🎸 PEDIR TODAS</button></div>`:''}
+    ${!(selMode||S.selectedSongs.length)?`<button class="suggest-btn" onclick="goTo('suggest',{currentPlaylist:S.currentPlaylist})">➕ Não achou a sua? Sugira uma música</button>`:''}
+    ${S.selectedSongs.length>0?`<div class="select-bar"><div class="select-bar-info"><span>${S.selectedSongs.length}</span> música${S.selectedSongs.length>1?'s':''} selecionada${S.selectedSongs.length>1?'s':''}</div><button class="btn-request-all" onclick="requestSelectedSongs()">🎸 PEDIR TODAS</button></div>`:''}
   </div>`;
 }
 
@@ -1467,7 +1474,13 @@ function openRecent(){const t=Date.now()-30*24*60*60*1000;const r=S.allSongs.fil
 function selectSong(plId,sId){const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(!s)return;S.selectedSongs=[];S.currentSong=s;S.requesterName='';S.message='';S.pixAmount=0;S.hasPix=false;S.showPixKey=false;S.pixCustom='';goTo('step1');}
 // ═══ MULTI SELECT ═══
 function toggleSelMode(){S.selectionMode=!S.selectionMode;if(!S.selectionMode)S.selectedSongs=[];render();}
-function toggleSongSel(plId,sId){const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(!s)return;const idx=S.selectedSongs.findIndex(x=>x.id===sId);if(idx>=0)S.selectedSongs.splice(idx,1);else S.selectedSongs.push(s);render();}
+function toggleSongSel(plId,sId){const s=(S.songs[plId]||[]).find(x=>x.id===sId);if(!s)return;const idx=S.selectedSongs.findIndex(x=>x.id===sId);if(idx>=0)S.selectedSongs.splice(idx,1);
+  else{
+    const k=_artistKey(s.artist);
+    if(S.selectedSongs.filter(x=>_artistKey(x.artist)===k).length>=MAX_POR_ARTISTA){toast('Máximo de '+MAX_POR_ARTISTA+' músicas por banda 🤘');return;}
+    S.selectedSongs.push(s);
+  }
+  render();const sc=document.querySelector('#root .screen');if(sc)sc.classList.remove('fade-in');}
 function requestSelectedSongs(){if(!S.selectedSongs.length)return;S.currentSong=S.selectedSongs[0];S.requesterName='';S.message='';S.pixAmount=0;S.hasPix=false;S.showPixKey=false;S.pixCustom='';goTo('step1');}
 function selectAmt(a){S.pixAmount=a;S.showPixKey=false;render();}
 function showPix(){S.showPixKey=true;render();}
