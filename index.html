@@ -436,15 +436,16 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .share-card-btn:active{transform:translateY(2px);box-shadow:none}
 .share-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;animation:shareFade .2s}
 .share-sheet{width:100%;max-width:420px;max-height:100%;overflow-y:auto;background:var(--bg2);border:2px solid #e02b1f;border-radius:20px;padding:22px 20px 18px;text-align:center;box-shadow:0 0 28px rgba(224,43,31,.45);animation:shareUp .25s ease-out}
-.share-sheet-emoji{font-size:34px;margin-bottom:4px}
+.share-sheet-emoji{font-size:28px;margin-bottom:2px}
 .share-sheet-title{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;color:var(--white)}
-.share-sheet-sub{font-size:14px;color:var(--gray2);line-height:1.45;margin:6px 0 16px}
-.share-opt{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg3);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:13px 8px;color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;flex:1}
-.share-opt-main{width:100%;background:var(--red);border-color:var(--red);font-size:16px;margin-bottom:10px;box-shadow:0 3px 0 #7a1c14}
+.share-sheet-sub{font-size:13px;color:var(--gray2);line-height:1.4;margin:4px 0 12px}
+.share-opt{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg3);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:9px 6px;color:var(--white);font-family:'Barlow',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;flex:1}
+.share-opt-main{width:100%;background:var(--red);border-color:var(--red);font-size:14px;padding:10px 8px;margin-bottom:8px;box-shadow:0 2px 0 #7a1c14}
 .share-opt-row{display:flex;gap:8px}
 .share-wa{background:#128c4a;border-color:#128c4a}
 .share-tg{background:#2a8fcf;border-color:#2a8fcf}
-.share-skip{background:none;border:none;color:var(--gray2);font-family:'Barlow',sans-serif;font-size:13px;margin-top:14px;padding:6px;cursor:pointer;text-decoration:underline}
+.share-skip{display:block;width:100%;background:#fff;border:none;border-radius:12px;color:#111;font-family:'Barlow',sans-serif;font-size:17px;font-weight:700;line-height:1.25;margin-top:16px;padding:16px 14px;cursor:pointer;box-shadow:0 3px 0 #999}
+.share-skip:active{transform:translateY(3px);box-shadow:none}
 @keyframes shareUp{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 @keyframes shareFade{from{opacity:0}to{opacity:1}}
 /* ── Grupos por artista na playlist ── */
@@ -732,7 +733,7 @@ function openSharePrompt(manual){
     +'<button class="share-opt share-tg" onclick="shareVia(\'telegram\')">Telegram</button>'
     +'<button class="share-opt" onclick="copyShareLink()">📋 Copiar link</button>'
     +'</div>'
-    +'<button class="share-skip" onclick="_closeSharePrompt()">'+(manual?'Fechar':'Agora não, quero pedir minha música')+'</button>'
+    +'<button class="share-skip" onclick="_closeSharePrompt()">'+(manual?'Fechar':'Agora não, quero pedir minha música →')+'</button>'
     +'</div>';
   document.body.appendChild(div);
 }
