@@ -272,6 +272,12 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-grad
 .report-modal .cfg-field label{display:block;font-size:12px;color:var(--gray2);margin-bottom:5px;font-weight:600}
 .report-modal input,.report-modal select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 12px;color:#fff;font-family:'Barlow',sans-serif;font-size:15px;outline:none}
 .report-modal input:focus,.report-modal select:focus{border-color:var(--red)}
+.rb .rb-sum{font-size:13px;color:var(--gray2);margin-bottom:10px}.rb .rb-sum b{color:#fff}
+.rb .rb-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray2);margin:12px 0 6px}
+.rb .rb-row{margin-bottom:6px}.rb .rb-l{font-size:12px;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb .rb-bar{position:relative;height:18px;background:var(--bg3);border-radius:5px;overflow:hidden}
+.rb .rb-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--red);border-radius:5px}
+.rb .rb-bar b{position:absolute;right:6px;top:0;line-height:18px;font-size:11px;color:#fff}
 .req-btn{flex:1;padding:8px;border-radius:8px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:var(--tr);text-transform:uppercase;letter-spacing:0.5px}
 .req-played{background:rgba(39,174,96,0.15);color:#27ae60;border:1px solid rgba(39,174,96,0.3)}
 .req-played:hover{background:rgba(39,174,96,0.25)}
@@ -514,6 +520,7 @@ document.addEventListener('visibilitychange',()=>{
     acquireWakeLock();
     if(!S.reqListener){listenReqs();}
     if(!S.wishListener){listenWish();}
+    autoClean();
   }
 });
 
@@ -552,7 +559,8 @@ function listenReqs(){
     .where('status','==','pending')
     .orderBy('createdAt','desc')
     .onSnapshot(snap=>{
-      const newReqs=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const cutMs=cutoffDate().getTime();
+      const newReqs=snap.docs.map(d=>({id:d.id,...d.data()})).filter(r=>!r.createdAt||!r.createdAt.toMillis||r.createdAt.toMillis()>=cutMs);
       if(S.isAdmin&&newReqs.length>S._prevReqCount&&S._prevReqCount>=0){
         const newest=newReqs[0];if(newest)showNotif(newest);
       }
@@ -1507,7 +1515,7 @@ async function doLogin(){
     localStorage.setItem('sr_admin_email',e);
     localStorage.setItem('sr_was_admin','1');
     S.isAdmin=true;S.adminTab='requests';S._prevReqCount=-1;
-    listenReqs();listenWish();requestNotifPerm();activateAdminKeepAlive();renderAdmin();
+    listenReqs();listenWish();requestNotifPerm();activateAdminKeepAlive();renderAdmin();setTimeout(autoClean,2500);
   }
   catch(e){if(err){err.style.display='block';err.textContent='E-mail ou senha incorretos.';}}
 }
@@ -1853,83 +1861,264 @@ function sendCustomReaction(id,val){
   sendReaction(id,msg);
   try{const el=document.getElementById('crx-'+id);if(el)el.value='';}catch(e){}
 }
-// ═══ RELATÓRIO DE PEDIDOS ═══
+// ═══ RELATÓRIO + AUTO-LIMPEZA ═══
+// Nada fica guardado no Firebase: pedidos de shows anteriores são apagados sozinhos (corte às 6h da manhã).
+// Antes de apagar, só as CONTAGENS (música, artista, nome, dia) ficam no aparelho do admin (localStorage, 62 dias)
+// para os relatórios de semana/mês. O relatório completo vai por WhatsApp/e-mail quando você quiser.
+var CUT_H=6, HIST_KEY='sr_hist', HIST_DAYS=62;
+function _p2(n){return (n<10?'0':'')+n;}
+function _esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function cutoffDate(){var d=new Date();d.setHours(CUT_H,0,0,0);if(new Date()<d)d.setDate(d.getDate()-1);return d;}
+function dayKey(ms){var d=new Date(ms-CUT_H*3600000);return d.getFullYear()+'-'+_p2(d.getMonth()+1)+'-'+_p2(d.getDate());}
+function fmtDay(k){var p=k.split('-');return p[2]+'/'+p[1];}
+function _songKey(t,a){return (t||'').trim().toLowerCase()+'|'+(a||'').trim().toLowerCase();}
+function _docMs(r){return r.createdAt&&r.createdAt.toMillis?r.createdAt.toMillis():Date.now();}
+
+function loadHist(){try{var h=JSON.parse(localStorage.getItem(HIST_KEY)||'null');if(h&&h.days&&h.ids)return h;}catch(e){}return {days:{},ids:[]};}
+function saveHist(h){
+  try{
+    var keys=Object.keys(h.days).sort();
+    while(keys.length>HIST_DAYS)delete h.days[keys.shift()];
+    h.ids=h.ids.slice(-2000);
+    localStorage.setItem(HIST_KEY,JSON.stringify(h));
+  }catch(e){}
+}
+// Resume pedidos por dia de show: {dia:{n,played,songs:{chave:[titulo,artista,qtd,tocadas]},people:{nome:qtd}}}. Ignora descartados.
+function aggregateDocs(docs,into){
+  var days=into||{};
+  docs.forEach(function(r){
+    if(r.status==='dismissed')return;
+    var k=dayKey(_docMs(r));
+    var d=days[k]||(days[k]={n:0,played:0,songs:{},people:{}});
+    var sk=_songKey(r.songTitle,r.songArtist);
+    var s=d.songs[sk]||(d.songs[sk]=[r.songTitle||'',r.songArtist||'',0,0]);
+    s[2]++;d.n++;
+    if(r.status==='played'){s[3]++;d.played++;}
+    var who=(r.requesterName||'Anônimo').trim()||'Anônimo';
+    d.people[who]=(d.people[who]||0)+1;
+  });
+  return days;
+}
+function mergeDays(list){
+  var out={};
+  list.forEach(function(days){Object.keys(days).forEach(function(k){
+    var d=days[k],o=out[k]||(out[k]={n:0,played:0,songs:{},people:{}});
+    o.n+=d.n;o.played+=d.played;
+    Object.keys(d.songs).forEach(function(sk){var s=d.songs[sk],t=o.songs[sk]||(o.songs[sk]=[s[0],s[1],0,0]);t[2]+=s[2];t[3]+=s[3];});
+    Object.keys(d.people).forEach(function(p){o.people[p]=(o.people[p]||0)+d.people[p];});
+  });});
+  return out;
+}
+function histAdd(docs){
+  var h=loadHist(),seen=new Set(h.ids);
+  var fresh=docs.filter(function(r){return !seen.has(r.id);});
+  aggregateDocs(fresh,h.days);
+  fresh.forEach(function(r){h.ids.push(r.id);});
+  saveHist(h);
+}
+// Guarda o resumo no aparelho e APAGA os pedidos do Firebase.
+async function archiveAndDelete(snap){
+  histAdd(snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}));
+  for(var i=0;i<snap.docs.length;i+=400){
+    var b=db.batch();
+    snap.docs.slice(i,i+400).forEach(function(d){b.delete(d.ref);});
+    await b.commit();
+  }
+  return snap.size;
+}
+// Auto-limpeza: roda quando o admin abre o app, volta ao app, e a cada 30 min. Apaga tudo de antes do último corte das 6h.
+async function autoClean(){
+  if(!S.isAdmin||S._cleaning)return;
+  S._cleaning=true;
+  try{
+    var cut=firebase.firestore.Timestamp.fromDate(cutoffDate());
+    for(var i=0;i<5;i++){
+      var snap=await db.collection('requests').where('createdAt','<',cut).limit(400).get();
+      if(snap.empty)break;
+      await archiveAndDelete(snap);
+      if(snap.size<400)break;
+    }
+  }catch(e){}
+  S._cleaning=false;
+}
+setInterval(autoClean,30*60*1000);
+
+async function _liveDocs(){
+  try{
+    var snap=await db.collection('requests').orderBy('createdAt','asc').limit(1000).get();
+    return snap.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+  }catch(e){return (S.requests||[]).slice();}
+}
+function _rank(list){
+  var songs={},arts={},people={},n=0,played=0;
+  list.forEach(function(d){
+    n+=d.n;played+=d.played;
+    Object.keys(d.songs).forEach(function(k){
+      var s=d.songs[k],t=songs[k]||(songs[k]={a:s[0]+' — '+s[1],n:0});t.n+=s[2];
+      var ak=(s[1]||'').trim().toLowerCase(),ar=arts[ak]||(arts[ak]={a:s[1],n:0});ar.n+=s[2];
+    });
+    Object.keys(d.people).forEach(function(p){people[p]=(people[p]||0)+d.people[p];});
+  });
+  var by=function(o){return Object.keys(o).map(function(k){return o[k];}).sort(function(x,y){return y.n-x.n;});};
+  var pp=Object.keys(people).map(function(p){return {a:p,n:people[p]};}).sort(function(x,y){return y.n-x.n;});
+  return {n:n,played:played,songs:by(songs),arts:by(arts),people:pp};
+}
+function _barsHtml(title,items){
+  if(!items.length)return '';
+  var max=items[0].n||1;
+  return '<div class="rb-t">'+_esc(title)+'</div>'+items.map(function(x){
+    return '<div class="rb-row"><div class="rb-l">'+_esc(x.a)+'</div><div class="rb-bar"><i style="width:'+Math.max(6,Math.round(x.n/max*100))+'%"></i><b>'+x.n+'</b></div></div>';
+  }).join('');
+}
+function _txtList(title,items,max,fmt){
+  if(!items.length)return '';
+  var t='\n'+title+'\n';
+  items.slice(0,max).forEach(function(x,i){t+=(i+1)+'. '+fmt(x)+'\n';});
+  return t;
+}
+// Monta o relatório (texto + prévia com barras) conforme o período escolhido.
+async function buildReport(){
+  var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  var period=g('rep-period')||'hoje';
+  var live=await _liveDocs();
+  var wish=(S.wishlist||[]).slice().sort(function(a,b){return (b.count||0)-(a.count||0);}).slice(0,8)
+    .map(function(w){return {a:w.title+' — '+w.artist,n:w.count||1};});
+  var txt='🎸 SUJEITO ROCK — RELATÓRIO ',prev='';
+  if(period==='hoje'){
+    var scope=g('rep-scope')||'played';
+    var place=g('rep-place').trim()||'(local não informado)';
+    var date=g('rep-date');
+    var cutMs=cutoffDate().getTime();
+    var docs=live.filter(function(r){
+      if(_docMs(r)<cutMs)return false;
+      return scope==='all'?r.status!=='dismissed':r.status==='played';
+    });
+    var groups=[],map={};
+    docs.forEach(function(r){
+      var key=_songKey(r.songTitle,r.songArtist);
+      if(map[key]===undefined){map[key]=groups.length;groups.push({songTitle:r.songTitle,songArtist:r.songArtist,names:[]});}
+      groups[map[key]].names.push(r.requesterName||'Anônimo');
+    });
+    txt+='DE PEDIDOS\nLocal: '+place+'\n';
+    if(date)txt+='Data: '+date.split('-').reverse().join('/')+'\n';
+    txt+='Músicas: '+groups.length+'\n--------------------------------\n';
+    groups.forEach(function(gr,i){
+      txt+=(i+1)+'. '+gr.songTitle+' — '+gr.songArtist+(gr.names.length>1?' ('+gr.names.length+'x)':'')+'\n   Pedido por: '+gr.names.join(', ')+'\n';
+    });
+    if(!groups.length)txt+='(nenhum pedido neste filtro)\n';
+    var top=groups.map(function(gr){return {a:gr.songTitle+' — '+gr.songArtist,n:gr.names.length};}).sort(function(x,y){return y.n-x.n;}).slice(0,8);
+    prev='<div class="rb-sum"><b>'+groups.length+'</b> músicas · <b>'+docs.length+'</b> pedidos</div>'+_barsHtml('Mais pedidas hoje',top)+_barsHtml('Sugestões fora da lista',wish);
+    if(wish.length)txt+=_txtList('💌 SUGESTÕES FORA DA LISTA',wish,8,function(x){return x.a+' ('+x.n+'x)';});
+  }else{
+    var nd=period==='mes'?30:7;
+    var all=mergeDays([loadHist().days,aggregateDocs(live)]);
+    var from=dayKey(Date.now()-(nd-1)*86400000);
+    var keys=Object.keys(all).filter(function(k){return k>=from;}).sort();
+    var r=_rank(keys.map(function(k){return all[k];}));
+    var perDay=keys.map(function(k){return {a:fmtDay(k),n:all[k].n};});
+    txt+=(period==='mes'?'DO MÊS':'DA SEMANA')+'\n';
+    if(keys.length)txt+='Período: '+fmtDay(keys[0])+' a '+fmtDay(keys[keys.length-1])+'\n';
+    txt+='Shows: '+keys.length+' · Pedidos: '+r.n+' (tocaram '+r.played+') · Músicas diferentes: '+r.songs.length+'\n--------------------------------\n';
+    if(!keys.length)txt+='(sem pedidos neste período)\n';
+    txt+=_txtList('🔥 MAIS PEDIDAS',r.songs,15,function(x){return x.a+' ('+x.n+'x)';});
+    txt+=_txtList('🎤 ARTISTAS',r.arts,10,function(x){return x.a+' ('+x.n+')';});
+    txt+=_txtList('🙋 QUEM MAIS PEDE',r.people,5,function(x){return x.a+' ('+x.n+')';});
+    if(perDay.length>1)txt+='\n📅 POR SHOW\n'+perDay.map(function(x){return x.a+': '+x.n+' pedidos';}).join('\n')+'\n';
+    txt+=_txtList('💌 SUGESTÕES FORA DA LISTA',wish,8,function(x){return x.a+' ('+x.n+'x)';});
+    prev='<div class="rb-sum"><b>'+keys.length+'</b> shows · <b>'+r.n+'</b> pedidos · <b>'+r.songs.length+'</b> músicas</div>'+
+      _barsHtml('Mais pedidas',r.songs.slice(0,8))+_barsHtml('Artistas',r.arts.slice(0,6))+
+      (perDay.length>1?_barsHtml('Pedidos por show',perDay.slice(-10)):'')+_barsHtml('Quem mais pede',r.people.slice(0,5))+_barsHtml('Sugestões fora da lista',wish);
+    if(!keys.length)prev='<div class="rb-sum">Sem pedidos neste período.</div>'+_barsHtml('Sugestões fora da lista',wish);
+  }
+  return {text:txt,prev:prev};
+}
+async function refreshReport(){
+  var period=(document.getElementById('rep-period')||{}).value||'hoje';
+  var hf=document.getElementById('rep-hoje-fields');if(hf)hf.style.display=period==='hoje'?'block':'none';
+  var note=document.getElementById('rep-note');if(note)note.style.display=period==='hoje'?'none':'block';
+  var box=document.getElementById('rep-prev');if(!box)return;
+  box.innerHTML='<div class="rb-sum">Carregando…</div>';
+  try{var r=await buildReport();if(document.getElementById('rep-prev'))document.getElementById('rep-prev').innerHTML=r.prev;}
+  catch(e){box.innerHTML='<div class="rb-sum">Erro ao montar o relatório.</div>';}
+}
 function openReport(){
   if(document.getElementById('report-ov'))return;
-  var hoje=new Date().toISOString().slice(0,10);
+  var hoje=dayKey(Date.now());
+  var mail=localStorage.getItem('sr_report_email')||(auth.currentUser&&auth.currentUser.email)||localStorage.getItem('sr_admin_email')||'';
   var ov=document.createElement('div');ov.className='report-overlay';ov.id='report-ov';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   ov.innerHTML='<div class="report-modal">'+
-    '<h3>📄 Relatório de Pedidos</h3>'+
-    '<p style="font-size:12px;color:var(--gray2);margin-bottom:14px">Gera a lista de músicas pedidas com os nomes. Preencha o local e envie pelo WhatsApp ou baixe em texto.</p>'+
-    '<div class="cfg-field"><label>Local / Evento</label><input type="text" id="rep-place" placeholder="Ex: Bar do Zé — São Paulo"></div>'+
-    '<div class="cfg-field"><label>Data</label><input type="date" id="rep-date" value="'+hoje+'"></div>'+
-    '<div class="cfg-field"><label>Incluir</label><select id="rep-scope"><option value="played">Só as que tocaram</option><option value="all">Todos os pedidos</option></select></div>'+
-    '<div style="display:flex;gap:8px;margin-top:6px">'+
-      '<button class="req-btn req-played" onclick="sendReportWhats()">📲 WhatsApp</button>'+
-      '<button class="req-btn" style="background:var(--bg3);color:#fff;border:1px solid var(--border)" onclick="downloadReport()">⬇️ Baixar .txt</button>'+
+    '<h3>📄 Relatório</h3>'+
+    '<p style="font-size:12px;color:var(--gray2);margin-bottom:14px">Mande para o WhatsApp ou e-mail quando quiser. Nada fica guardado no Firebase: os pedidos somem sozinhos todo dia às 6h.</p>'+
+    '<div class="cfg-field"><label>Período</label><select id="rep-period" onchange="refreshReport()"><option value="hoje">Show de hoje</option><option value="semana">Últimos 7 dias</option><option value="mes">Últimos 30 dias</option></select></div>'+
+    '<div id="rep-hoje-fields">'+
+      '<div class="cfg-field"><label>Local / Evento</label><input type="text" id="rep-place" placeholder="Ex: Bar do Zé — São Paulo"></div>'+
+      '<div class="cfg-field"><label>Data</label><input type="date" id="rep-date" value="'+hoje+'"></div>'+
+      '<div class="cfg-field"><label>Incluir</label><select id="rep-scope" onchange="refreshReport()"><option value="played">Só as que tocaram</option><option value="all">Todos os pedidos</option></select></div>'+
     '</div>'+
-    '<button class="req-btn req-dismiss" style="width:100%;margin-top:8px" onclick="clearPlayed()">🧹 Limpar pedidos já tocados/descartados</button>'+
+    '<div id="rep-note" style="display:none;font-size:11px;color:var(--gray2);margin:-4px 0 12px">Semana e mês usam o histórico guardado só neste celular (62 dias). Se trocar de aparelho ou limpar os dados do navegador, ele recomeça.</div>'+
+    '<div id="rep-prev" class="rb"></div>'+
+    '<div class="cfg-field" style="margin-top:14px"><label>Enviar por e-mail para</label><input type="email" id="rep-email" placeholder="seu@email.com" value="'+_esc(mail)+'"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">'+
+      '<button class="req-btn req-played" style="flex:1" onclick="sendReportWhats()">📲 WhatsApp</button>'+
+      '<button class="req-btn req-played" style="flex:1" onclick="sendReportEmail()">✉️ E-mail</button>'+
+      '<button class="req-btn" style="flex:1;background:var(--bg3);color:#fff;border:1px solid var(--border)" onclick="downloadReport()">⬇️ .txt</button>'+
+    '</div>'+
+    '<button class="req-btn req-dismiss" style="width:100%;margin-top:8px" onclick="endShow()">🏁 Encerrar show (limpar todos os pedidos)</button>'+
     '<button class="btn-secondary" style="margin-top:12px;width:100%" onclick="document.getElementById(\'report-ov\').remove()">Fechar</button>'+
+    '<div style="text-align:center;margin-top:10px"><a href="#" onclick="clearHistLocal();return false" style="font-size:11px;color:var(--gray)">Apagar histórico deste celular</a></div>'+
   '</div>';
   document.body.appendChild(ov);
-}
-async function _reportDocs(scope){
-  var docs;
-  try{
-    var snap=await db.collection('requests').orderBy('createdAt','asc').limit(1000).get();
-    docs=snap.docs.map(function(d){return d.data();});
-  }catch(e){ docs=(S.requests||[]).slice(); }
-  return docs.filter(function(d){ return scope==='all' ? d.status!=='dismissed' : d.status==='played'; });
-}
-async function buildReportText(){
-  var place=(document.getElementById('rep-place')?.value||'').trim()||'(local não informado)';
-  var date=document.getElementById('rep-date')?.value||'';
-  var scope=document.getElementById('rep-scope')?.value||'played';
-  var docs=await _reportDocs(scope);
-  var groups=[], map={};
-  docs.forEach(function(r){
-    var key=(r.songTitle||'').trim().toLowerCase()+'|'+(r.songArtist||'').trim().toLowerCase();
-    if(map[key]===undefined){map[key]=groups.length;groups.push({songTitle:r.songTitle,songArtist:r.songArtist,names:[]});}
-    groups[map[key]].names.push(r.requesterName||'Anônimo');
-  });
-  var txt='🎸 SUJEITO ROCK — RELATÓRIO DE PEDIDOS\n';
-  txt+='Local: '+place+'\n';
-  if(date)txt+='Data: '+date.split('-').reverse().join('/')+'\n';
-  txt+='Músicas: '+groups.length+'\n';
-  txt+='--------------------------------\n';
-  groups.forEach(function(g,i){
-    txt+=(i+1)+'. '+g.songTitle+' — '+g.songArtist+'\n   Pedido por: '+g.names.join(', ')+'\n';
-  });
-  if(!groups.length)txt+='(nenhum pedido neste filtro)\n';
-  return txt;
+  refreshReport();
 }
 async function sendReportWhats(){
-  var txt=await buildReportText();
+  var r=await buildReport();
   var num=(S.config.whatsapp||'').replace(/\D/g,'');
   if(num&&num.indexOf('55')!==0)num='55'+num;
-  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(txt),'_blank');
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(r.text),'_blank');
+}
+async function sendReportEmail(){
+  var to=((document.getElementById('rep-email')||{}).value||'').trim();
+  if(!to||to.indexOf('@')<1){toast('Digite seu e-mail primeiro.');return;}
+  try{localStorage.setItem('sr_report_email',to);}catch(e){}
+  var r=await buildReport();
+  var body=r.text;
+  if(body.length>6000)body=body.slice(0,6000)+'\n…(cortado — use "Baixar .txt" para o relatório completo)';
+  var period=(document.getElementById('rep-period')||{}).value||'hoje';
+  var subj='Relatório Sujeito Rock — '+(period==='hoje'?'show de '+fmtDay(dayKey(Date.now())):period==='mes'?'últimos 30 dias':'últimos 7 dias');
+  window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
 }
 async function downloadReport(){
-  var txt=await buildReportText();
+  var r=await buildReport();
   try{
-    var blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    var blob=new Blob([r.text],{type:'text/plain;charset=utf-8'});
     var url=URL.createObjectURL(blob);
-    var place=((document.getElementById('rep-place')?.value||'pedidos').trim()||'pedidos').replace(/[^\w\-]+/g,'_');
+    var place=(((document.getElementById('rep-place')||{}).value||'pedidos').trim()||'pedidos').replace(/[^\w\-]+/g,'_');
     var a=document.createElement('a');a.href=url;a.download='relatorio_'+place+'.txt';
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
     toast('Relatório baixado! ⬇️');
   }catch(e){toast('Erro ao baixar.');}
 }
-async function clearPlayed(){
-  if(!confirm('Apagar de vez os pedidos já TOCADOS e DESCARTADOS? Gere o relatório antes! Os pedidos que ainda estão na fila não serão apagados.'))return;
+// Encerra o show: guarda o resumo no celular e apaga TODOS os pedidos do Firebase.
+async function endShow(){
+  if(!confirm('Encerrar o show? TODOS os pedidos (inclusive os que ainda estão na fila) serão apagados do app. Envie o relatório antes!'))return;
   try{
-    var snap=await db.collection('requests').where('status','in',['played','dismissed']).limit(500).get();
-    if(snap.empty){toast('Nada para limpar.');return;}
-    var b=db.batch();snap.docs.forEach(function(d){b.delete(d.ref);});await b.commit();
-    toast('Limpo! App mais leve 🧹 ('+snap.size+')');
+    var total=0;
+    for(var i=0;i<5;i++){
+      var snap=await db.collection('requests').limit(400).get();
+      if(snap.empty)break;
+      total+=await archiveAndDelete(snap);
+      if(snap.size<400)break;
+    }
+    toast(total?'Show encerrado! 🏁 App limpo ('+total+')':'Nada para limpar.');
+    var ov=document.getElementById('report-ov');if(ov)ov.remove();
   }catch(e){toast('Erro ao limpar.');}
+}
+function clearHistLocal(){
+  if(!confirm('Apagar o histórico de semana/mês guardado neste celular?'))return;
+  try{localStorage.removeItem(HIST_KEY);}catch(e){}
+  toast('Histórico apagado.');refreshReport();
 }
 // ═══ BOOT ═══
   
@@ -1942,7 +2131,7 @@ auth.onAuthStateChanged(user=>{
       localStorage.setItem('sr_was_admin','1');
       S.isAdmin=true;S.adminTab='requests';S._prevReqCount=-1;
       listenReqs();listenWish();requestNotifPerm();activateAdminKeepAlive();
-      renderAdmin();
+      renderAdmin();setTimeout(autoClean,2500);
     }
     // Se não está indo para admin — usuário está na área pública, não ativa nada
   }
